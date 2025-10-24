@@ -1,0 +1,20 @@
+{% extends "main/admin/layout.html" %}
+{% block content %}
+<section class="add-product-section">
+    <h2>Add New Product</h2>
+    <form method="POST" action="{% url 'add_product' %}">
+        {% csrf_token %}
+        <input type="text" name="product_name" placeholder="Furniture name" required>
+        <input type="number" name="product_quantity" placeholder="Quantity"required>
+        <input type="number" name="product_price" placeholder="Price (₱)" required>
+        <input type="text" name="product_description" placeholder="Description" required>
+        <input type="text" name="category_name" placeholder="Category" required>
+        <input type="text" name="subcategory" placeholder="Subcategory" required>
+        <input type="file" name="item_image" placeholder="Image" accept="image/*" multiple required>
+        <input type="submit" value="Add Product">
+    </form>
+    <div class="back-to-products">
+        <a href="{% url 'home' %}" class="button">← Back to Products</a>
+    </div>
+</section>
+{% endblock %}

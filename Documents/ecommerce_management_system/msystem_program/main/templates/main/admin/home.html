@@ -1,0 +1,49 @@
+{% extends "main/admin/layout.html" %}
+{% load static %}
+{% block content %}
+<section class="home-section">
+
+    <!-- Search Form -->
+    <form method="GET" action="{% url 'home' %}" class="search-form">
+        {% csrf_token %}
+        <input 
+            type="text" 
+            name="search" 
+            placeholder="Search furniture..." 
+            value="{{ search_query }}"
+        >
+        <input type="submit" value="Search">
+    </form>
+
+    <!-- Add Product Button -->
+    <div class="add-product-link">
+        <a class="button" href="{% url 'add_product' %}">+ Add New Product</a>
+    </div>
+
+    <!-- Category Section -->
+    <div class="category-section">
+        <div class="category-grid">
+            <a href="{% url 'category' 'Living Room' %}" class="category-card">
+                <img src="{% static 'main/css/admin/pics/livingroom.jpg' %}" alt="Living Room">
+                <h3>Living Room</h3>
+            </a>
+            <a href="{% url 'category' 'Bedroom' %}" class="category-card">
+                <img src="{% static 'main/css/admin/pics/bedroom.jpg' %}" alt="Bedroom">
+                <h3>Bedroom</h3>
+            </a>
+            <a href="{% url 'category' 'Kitchen' %}" class="category-card">
+                <img src="{% static 'main/css/admin/pics/kitchen.jpg' %}" alt="Kitchen">
+                <h3>Kitchen</h3>
+            </a>
+            <a href="{% url 'category' 'Bathroom and Laundry' %}" class="category-card">
+                <img src="{% static 'main/css/admin/pics/bathroomandlaundry.jpg' %}" alt="Bathroom">
+                <h3>Bathroom & Laundry</h3>
+            </a>
+            <a href="{% url 'category' 'Tables and Chairs' %}" class="category-card">
+                <img src="{% static 'main/css/admin/pics/tablesandchairs.jpg' %}" alt="Tables and Chairs">
+                <h3>Tables and Chairs</h3>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

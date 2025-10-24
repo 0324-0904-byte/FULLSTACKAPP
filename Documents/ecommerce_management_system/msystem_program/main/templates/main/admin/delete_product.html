@@ -1,0 +1,12 @@
+{% extends "main/admin/layout.html" %}
+{% block content %} 
+<div class="delete-product-container">
+    <h2>Delete Product</h2>
+    <p>Are you sure you want to delete {{ product.item_name }}?</p> 
+    <form method="POST" class="delete-form"> 
+        {% csrf_token %}
+        <button type="submit" class="btn delete-btn">Yes, Delete</button> 
+        <a href="{% url 'category' category.name %}" class="btn cancel-btn">Cancel</a> 
+    </form> 
+</div>
+{% endblock %}

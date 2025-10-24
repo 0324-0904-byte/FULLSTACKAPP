@@ -1,0 +1,17 @@
+{% extends "main/admin/layout.html" %}
+
+{% block content %}
+<h2>Customers</h2>
+
+<div class="list">
+    {% for customer in customers %}
+        <div class="list-item">
+            <strong>{{ customers.user_name }}</strong>
+            <p>Email: {{ customers.user_email }}</p>
+
+        </div>
+    {% empty %}
+        <p>No customers found.</p>
+    {% endfor %}
+</div>
+{% endblock %}

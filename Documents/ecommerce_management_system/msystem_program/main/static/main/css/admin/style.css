@@ -1,0 +1,742 @@
+/* ===== Global Styles ===== */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+    margin: 0;
+}
+
+/* ===== Header ===== */
+header {
+    background: #eae6df;
+    color: white;
+    padding: 18px 30px;
+    text-align: center;
+    position: sticky;
+}
+
+header h1 {
+    color: #b8926a;
+    margin: 0;
+    font-size: 25px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ===== Main Background ===== */
+main {
+    height: 90.6vh; /* always full viewport */
+    padding-top: 20px; /* push content below header */
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background:
+        linear-gradient(rgba(32, 32, 32, 0.5), rgba(33, 33, 33, 0.3)),
+        url('pics/ito.jpg') no-repeat center center fixed;
+    background-size: cover;
+}
+
+/* ===== Login Form ===== */
+.login-container {
+    background: #65360d63;
+    padding: 40px 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.login-container h2 {
+    color: #fff;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+}
+
+label[for="username"],
+label[for="password"] {
+    color: #fed3ae; /* your chosen color */
+    font-weight: 600;
+    letter-spacing: 0.5px; /* optional for cleaner text */
+}
+
+form input[type="text"],
+form input[type="password"] {
+    width: 90%;
+    padding: 12px;
+    margin: 10px 0;
+    border: none;
+    border-radius: 6px;
+    color: #000000;
+    background-color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+}
+
+form input[type="submit"] {
+    background-color: #fca961;
+    color: white;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.3s ease, transform 0.2s ease;
+    width: 95%;
+}
+
+form input[type="submit"]:hover {
+    background-color: #65360d9e;
+    transform: scale(1.03);
+}
+
+/* ===== Error Message ===== */
+.error {
+    color: #ff4d4d;
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+/* ===== Footer (optional future use) ===== */
+footer {
+    display: block;
+    border-top: 0.2vh solid #c6c3c3;
+    padding: 2vh 11vw 3vh 11vw;
+    height: 20%;
+}
+
+/* ===== Box-sizing fix ===== */
+* {
+    box-sizing: border-box;
+}
+
+.products-header {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #fff;
+}
+
+.search-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.search-form input[type="text"] {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: none;
+    width: 250px;
+    margin-right: 10px;
+}
+
+.search-form input[type="submit"] {
+    background-color: #65360d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.search-form input[type="submit"]:hover {
+    background-color: #854d1a;
+}
+
+.products-section {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  justify-items: center;
+  margin-top: 3%;
+  margin-left: 5%;
+  margin-right: 5%;
+}
+
+.product-card {
+  background-color: rgba(54, 53, 53, 0.478);
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  width: 280px;
+  text-align: center;
+  padding: 50px;
+  transition: 0.3s;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+/* .product-card img {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    border-radius: 10px;
+} */
+
+
+/* Products Title */
+.section-title {
+    display: inline-block;
+    background-color: #65360d9e;
+    color: #fff;
+    padding: 10px 18px;
+    margin: 10px 5px 20px 0;
+    border: none;
+    border-radius: 6px;
+    font-size: 24px;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.section-title:hover {
+    background-color: #854d1a;
+    transform: scale(1.05);
+}
+
+/* Search Form */
+.search-form {
+    display: flex;
+    flex-direction: column; /* button sa ilalim ng input */
+    align-items: flex-start; /* ilagay sa kaliwa */
+    gap: 1px;
+    /* margin-top: 15px; */
+    margin-bottom: 150px;
+    margin-left: 20px; /* para may kaunting layo sa gilid */
+    margin-right: 1000px;
+}
+
+.search-form input[type="text"] {
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: none;
+    width: 250px;
+    background-color: #fff;
+}
+
+.search-form input[type="submit"] {
+    background-color: #65360d9e;
+    color: white;
+    border: none;
+    width: 250px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.search-form input[type="submit"]:hover {
+    background-color: #854d1a;
+    transform: scale(1.05);
+}
+
+/* ===== Add & Update Product Pages ===== */
+.add-product-section,
+.update-product-section {
+    background: rgba(255, 255, 255, 0.92);
+    width: 420px;
+    margin: 0 0 0 0;
+    padding: 30px 35px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
+/* Inherit same background as login */
+body.add-bg, body.update-bg {
+    background: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.5)), 
+    url('static/pics/ito.jpg') no-repeat center center fixed;
+    background-size: cover;
+    height: 80vh;
+}
+
+/* Page headings */
+.add-product-section h2,
+.update-product-section h2 {
+    font-size: 20px;
+    color: #65360d;
+    margin: 2px 0 5px 0;
+    font-family: 'Moolit', cursive;
+}
+
+/* Input fields */
+.add-product-section input[type="text"],
+.add-product-section input[type="number"],
+.update-product-section input[type="text"],
+.update-product-section input[type="number"] {
+    width: 95%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+}
+
+/* Submit button */
+.add-product-section input[type="submit"],
+.update-product-section input[type="submit"] {
+    width: 100%;
+    background-color: #65360d;
+    color: #fff;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.add-product-section input[type="submit"]:hover,
+.update-product-section input[type="submit"]:hover {
+    background-color: #4a250a;
+    transform: scale(1.03);
+}
+
+/* Back button */
+.back-to-products {
+    margin-top: 20px;
+}
+
+.back-to-products .button {
+    background-color: #b36b00;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.3s ease;
+}
+
+.back-to-products .button:hover {
+    background-color: #945a00;
+}
+
+/* Add / Update buttons (on list page) */
+.button {
+    display: inline-block;
+    background-color: #65360d9e;
+    color: #fff;
+    padding: 10px 18px;
+    margin: 10px 5px 0 0;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.button:hover {
+    background-color: #65360d9e;
+    transform: scale(1.05);
+}
+
+/* ===== Add Product Button (upper-right corner) ===== */
+.add-product-link {
+    position: absolute;
+    bottom: 520px;
+    right: 20px;
+    margin-right: 50px;
+}
+
+.add-product-link .button {
+    display: inline-block;
+    background-color: #65360d9e;
+    color: #fff;
+    padding: 10px 18px;
+    margin: 0;
+    border: none;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.add-product-link .button:hover {
+    background-color: #854d1a;
+    transform: scale(1.05);
+}
+
+/* ===== Delete Product Page ===== */
+body.delete-bg {
+    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), 
+                url('/static/pics/ito.jpg') no-repeat center center fixed;
+    background-size: cover;
+    height: 100vh;
+    margin: 0;
+}
+
+.delete-product-section {
+    background: rgba(255, 255, 255, 0.92);
+    width: 420px;
+    margin: 120px auto;
+    padding: 30px 35px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
+.delete-product-section h2 {
+    font-size: 26px;
+    color: #b30000;
+    margin-bottom: 20px;
+    font-family: 'Moolit', cursive;
+}
+
+.delete-product-section p {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 25px;
+}
+
+/* Delete & Cancel buttons */
+.delete-button {
+    background-color: #b30000;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.delete-button:hover {
+    background-color: #d90404;
+    transform: scale(1.03);
+}
+
+.cancel-button {
+    background-color: #555;
+    color: #fff;
+    margin-left: 10px;
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.cancel-button:hover {
+    background-color: #777;
+    transform: scale(1.03);
+}
+
+h2 {
+    font-family: "Roboto", Helvetica, sans-serif;
+    letter-spacing: 1px;
+    font-size: 30px;
+    margin-bottom: 0px;
+    color: #faf2e1;
+    text-align: center;
+}
+
+strong {
+    font-family: "Roboto", Helvetica, sans-serif;
+    color: #ffe5e5;
+    font-weight: 1000; 
+    text-align: left;
+    font-size: 25px;
+    display: block;
+    margin-bottom: 5px;
+    margin-top: 30px; 
+}
+
+p {
+    font-family: "Roboto", Helvetica, sans-serif;
+    color: #f8f6d9;
+    font-weight: 500; 
+    text-align: left;
+    font-size: 15px;
+    display: block; 
+    /* margin-bottom: 8px;
+    margin-top: 15px;  */
+} 
+
+a.button {
+    margin-top: 2px;
+    text-decoration: none;
+    display: inline-block;
+}
+
+/* .actions {
+    margin-top: 20px;
+} */
+
+.actions .button {
+    margin-right: 50px;
+}
+
+.list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+    max-height: 500px;
+}
+
+.home-container {
+    text-align: center;
+    margin-top: 80px;
+}
+
+.home-container h2 {
+    font-size: 28px;
+    color: #333;
+}
+
+.home-container p {
+    margin: 15px 0;
+    color: #666;
+}
+
+.home-buttons {
+    margin-top: 30px;
+}
+
+.home-buttons .button {
+    display: inline-block;
+    padding: 10px 20px;
+    margin: 8px;
+    background-color: #4b2e05;
+    color: #fff;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background 0.3s ease;
+}
+
+.home-buttons .button:hover {
+    background-color: #6a3c0b;
+}
+
+.logout-btn {
+    background-color: #b71c1c;
+}
+
+.logout-btn:hover {
+    background-color: #d32f2f;
+}
+
+/* ===== Category Section ===== */
+.category-section {
+    text-align: center;
+    margin-top: 40px;
+    color: #fff;
+}
+
+.category-section h2 {
+    font-size: 2em;
+    margin-bottom: 30px;
+    top: 10px;
+}
+
+/* ===== Category Grid ===== */
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 5px;
+    justify-items: center;
+}
+
+/* ===== Circular Category Cards ===== */
+.category-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: #fff;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.category-card:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 20px rgba(255, 182, 70, 0.4);
+}
+
+/* Circle frame for the image */
+.category-card img {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.5));
+}
+
+/* Category label text */
+.category-card h3 {
+    margin-top: 12px;
+    font-size: 1.1em;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 6px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+    transition: background 0.3s ease;
+}
+
+.category-card:hover h3 {
+    background: rgba(255, 182, 70, 0.5);
+}
+
+
+/* Sidebar container */
+.left-sidebar {
+    width: 220px;
+    background-color: #ab860bd0;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+/* Category items */
+.category-item {
+    margin-bottom: 10px;
+}
+
+.category-name {
+    font-weight: bold;
+    display: block;
+    padding: 5px 10px;
+    background-color: #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Subcategory list */
+.subcategory-list {
+    list-style: none;
+    padding-left: 15px;
+    margin-top: 5px;
+}
+
+/* Subcategory links */
+.subcategory-link {
+    display: block;
+    padding: 3px 8px;
+    border-radius: 5px;
+    text-decoration: none;
+    color: #333;
+    transition: background-color 0.2s;
+}
+
+.subcategory-link:hover {
+    background-color: #cce5ff;
+    color: #007bff;
+}
+
+
+/* navigation */
+/* Header container */
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* clean, professional font */
+    position: sticky;
+}
+
+/* Admin panel title */
+.admin-header h1 {
+    color: #b8926a;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 30px;  
+    font-weight: 700; 
+    letter-spacing: 1px; 
+    margin: 0;
+}
+
+/* Navigation menu links */
+.admin-header nav a {
+    color: #b8926a;
+    font-size: 16px;       
+    font-weight: 500;      
+    text-transform: uppercase; 
+    letter-spacing: 0.5px;     
+    margin-left: 20px;
+    text-decoration: none;          
+    transition: color 0.3s ease, transform 0.2s ease, font-weight 0.2s ease, text-decoration 0.2s ease;
+}
+
+.admin-header nav a:hover {
+    text-decoration: underline;
+    font-weight: 600;   
+    transform: scale(1.05); 
+    color: #bb6d19;
+}
+
+
+/* delete product */
+/* Container for the confirmation box */
+.delete-product-container {
+    background-color: rgba(255, 255, 255, 0.95); /* slightly transparent white */
+    width: 400px;
+    max-width: 90%;
+    margin: 80px auto; /* center horizontally, some space from top */
+    padding: 30px 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    text-align: center;
+    font-family: 'Roboto', Helvetica, sans-serif;
+}
+
+/* Heading */
+.delete-product-container h2 {
+    font-size: 25px;
+    margin-bottom: 5px;
+    color: #000000; /* dark red to indicate warning */
+}
+
+/* Paragraph text */
+.delete-product-container p {
+    font-size: 16px;
+    margin-bottom: 5px;
+    color: #000000;
+}
+
+/* Form buttons */
+.delete-form .btn {
+    display: inline-block;
+    padding: 12px 20px;
+    margin: 5px;
+    border-radius: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Delete button style */
+.delete-form .delete-btn {
+    background-color: #b22222; /* dark red */
+    color: white;
+    border: none;
+}
+
+.delete-form .delete-btn:hover {
+    background-color: #8b1a1a; /* darker red on hover */
+    transform: scale(1.05);
+}
+
+/* Cancel button style */
+.delete-form .cancel-btn {
+    background-color: #ccc; /* light gray */
+    color: #333;
+    border: none;
+}
+
+.delete-form .cancel-btn:hover {
+    background-color: #999; /* darker gray */
+    color: white;
+    transform: scale(1.05);
+}

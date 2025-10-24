@@ -1,0 +1,19 @@
+<body class="update-bg">
+    {% extends "main/admin/layout.html" %}
+    {% block content %}
+    <section class="update-product-section">
+        <h2>Update Product</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="text" name="product_name" value="{{ product.item_name }}" required>
+            <input type="number" name="product_quantity" value="{{ product.item_quantity}} " required>
+            <input type="number" name="product_price" value="{{ product.item_price }}" required>
+            <input type="text" name="category_id" value="{{ product.category_id }}" required>
+            <input type="submit" value="Update Product">
+        </form>
+        <div class="back-to-products">
+            <a href="{% url 'category' category.name %}" class="button">← Back to Products</a>
+        </div>
+    </section>
+    {% endblock %}
+</body>

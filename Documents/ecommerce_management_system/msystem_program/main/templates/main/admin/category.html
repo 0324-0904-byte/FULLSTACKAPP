@@ -1,0 +1,41 @@
+{% extends "main/admin/layout.html" %}
+{% block content %}
+<div class="page-layout">
+
+    <!-- Left: category/subcategory tree -->
+    <div class="left-sidebar">
+        <ul class="category-tree">
+            {% for cat, subs in category_tree.items %}
+                <li>
+                    {{ cat }}
+                    <ul>
+                        {% for sub in subs %}
+                            <li>
+                                <a href="{% url 'category_sub' cat sub %}">{{ sub }}</a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Right: products -->
+     <h2>{{ category }}</h2>
+    <div class="products-section">
+        {% for product in products %}
+            <div class="product-card">
+                <strong>{{ product.item_name }}</strong>
+                <p>Quantity: {{ product.item_quantity }}</p>
+                <p>Price: ₱{{ product.item_price }}</p>
+                <p>Description: {{ product.item_description }}</p>
+                <a class="button" href="{% url 'update_product' product.item_id %}">Update</a>
+                <a class="button" href="{% url 'delete_product' product.item_id %}">Delete</a>
+            </div>
+        {% empty %}
+            <p>No products available in this category/subcategory.</p>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}
