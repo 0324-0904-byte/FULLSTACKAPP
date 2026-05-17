@@ -10,28 +10,36 @@
       <input [(ngModel)]="loginPass" type="password" placeholder="Password" style="width: 100%; padding: 12px; margin-bottom: 30px; border: 2px solid #cbd5e1; border-radius: 8px; box-sizing: border-box;">
       <button (click)="login()" style="width: 100%; background: #1e3a8a; color: white; padding: 14px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">SIGN IN</button>
     </div>
-  } @else {
+  } 
+  
+  @else {
     <div style="max-width: 1150px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #e2e8f0;">
       
       <div style="width: 100%; height: 180px; background: #0f172a; display: flex; align-items: center; justify-content: center;">
-        <img src="design.png" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />
+        <img src="design.png" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" alt="System Banner" />
       </div>
 
       <div style="display: flex; background: #1e3a8a; padding: 0 20px; justify-content: space-between; align-items: center;">
         <div style="display: flex;">
-          <button (click)="activeTab = 'dashboard'; refresh()" [style.background]="activeTab === 'dashboard' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">DASHBOARD</button>
+          @if (role === 'Admin') {
+            <button (click)="activeTab = 'dashboard'; refresh()" [style.background]="activeTab === 'dashboard' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">DASHBOARD</button>
+          }
           <button (click)="activeTab = 'vault'; refresh()" [style.background]="activeTab === 'vault' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">DOCUMENTS</button>
           @if (role === 'Admin') {
             <button (click)="activeTab = 'users'; refresh()" [style.background]="activeTab === 'users' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">USERS</button>
+            <button (click)="activeTab = 'permissions'; refresh()" [style.background]="activeTab === 'permissions' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">FOLDER PERMISSIONS</button>
             <button (click)="activeTab = 'logs'; refresh()" [style.background]="activeTab === 'logs' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">AUDIT TRAIL</button>
           }
         </div>
-        <div style="color: white; font-size: 12px;">Welcome, {{ loginName }} | <button (click)="logout()" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Logout</button></div>
+        <div style="color: white; font-size: 12px;">
+          Welcome, {{ loginName }} ({{ role }}) | 
+          <button (click)="logout()" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Logout</button>
+        </div>
       </div>
 
       <div style="padding: 30px 40px;">
         
-        @if (activeTab === 'dashboard') {
+        @if (activeTab === 'dashboard' && role === 'Admin') {
           <h3 style="color: #1e3a8a; margin-top: 0; font-size: 18px;">➢ SYSTEM ANALYTICS</h3>
           
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
@@ -40,7 +48,7 @@
               <p style="margin: 5px 0 0; font-size: 32px; font-weight: 800; color: #1e3a8a;">{{ users.length }}</p>
             </div>
             <div style="background: white; padding: 25px; border-radius: 8px; border-left: 5px solid #fbbf24; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-              <h4 style="margin: 0; color: #64748b; font-size: 11px; text-transform: uppercase;">Documemts</h4>
+              <h4 style="margin: 0; color: #64748b; font-size: 11px; text-transform: uppercase;">Documents</h4>
               <p style="margin: 5px 0 0; font-size: 32px; font-weight: 800; color: #1e3a8a;">{{ documents.length }}</p>
             </div>
             <div style="background: white; padding: 25px; border-radius: 8px; border-left: 5px solid #10b981; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
@@ -61,7 +69,7 @@
                 <div style="display: flex; align-items: center; gap: 12px;">
                   <div style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></div>
                   <div style="display: flex; flex-direction: column;">
-                    <span style="font-size: 13px; color: #334155; font-weight: 600;">{{ log.user_name || 'System' }}</span>
+                    <span style="font-size: 13px; color: #334155; font-weight: 600;">{{ log.user_name || 'System User' }}</span>
                     <span style="font-size: 12px; color: #64748b;">{{ log.action }}</span>
                   </div>
                 </div>
@@ -71,6 +79,129 @@
               <div style="padding: 30px; text-align: center; color: #94a3b8; font-size: 13px;">No recent activities logged in the system.</div>
             }
           </div>
+        }
+
+        @if (activeTab === 'vault') {
+          <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 25px;">
+            <h4 style="margin: 0 0 12px; color: #1e3a8a;">➢ FOLDER STRUCTURE MANAGEMENT</h4>
+            
+            @if (role === 'Admin') {
+              <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input [(ngModel)]="newFolderName" placeholder="Create new folder directory name..." style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 250px;">
+                <button (click)="createFolder()" style="background: #10b981; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">+ NEW FOLDER</button>
+              </div>
+            }
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+              <button (click)="selectedFolderId = ''; fetchVaultDocs()" [style.background]="selectedFolderId === '' ? '#1e3a8a' : '#e2e8f0'" [style.color]="selectedFolderId === '' ? 'white' : '#1e3a8a'" style="padding: 10px 20px; border-radius: 20px; border: none; cursor: pointer; font-weight: bold;">All Records</button>
+              
+              @for(f of folders; track f.id) {
+                <div style="display: flex; align-items: center; background: #e2e8f0; border-radius: 20px; padding-right: 8px; gap: 4px;">
+                  <button (click)="selectedFolderId = f.id; fetchVaultDocs()" [style.background]="selectedFolderId === f.id ? '#1e3a8a' : 'transparent'" [style.color]="selectedFolderId === f.id ? 'white' : '#1e3a8a'" style="padding: 10px 15px; border-radius: 20px; border: none; cursor: pointer; font-weight: bold;">
+                    📁 {{ f.folder_name }}
+                  </button>
+                  
+                  @if (role === 'Admin') {
+                    <button (click)="startFolderRename(f)" style="background: none; border: none; color: #3b82f6; cursor: pointer; padding: 0 2px;" title="Rename Folder">✏️</button>
+                    <button (click)="removeFolder(f.id)" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 2px;" title="Delete Folder">❌</button>
+                  }
+                </div>
+              }
+            </div>
+
+            @if (editingFolder) {
+              <div style="margin-top: 15px; padding: 12px; background: white; border: 1px dashed #3b82f6; border-radius: 6px; display: flex; gap: 10px; align-items: center;">
+                <span style="font-size: 13px; font-weight: bold; color: #1e3a8a;">Rename Folder:</span>
+                <input [(ngModel)]="editingFolder.folder_name" style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; width: 200px;">
+                <button (click)="saveFolderRename()" style="background: #10b981; color: white; padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">SAVE</button>
+                <button (click)="cancelEdit()" style="background: #64748b; color: white; padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">CANCEL</button>
+              </div>
+            }
+          </div>
+
+          <div style="margin-bottom: 25px; display: flex; gap: 10px;">
+            <input [(ngModel)]="searchText" (input)="fetchVaultDocs()" placeholder="Search documents by keyword or filter by category..." style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1;">
+          </div>
+
+          @if (role === 'Admin') {
+            <div style="background: #f8fafc; padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 30px;">
+              <h4 style="margin: 0 0 15px; color: #0f172a;">➢ [ADMIN] UPLOAD DOCUMENT TO SYSTEM</h4>
+              <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                <input [(ngModel)]="uploadTitle" placeholder="Document Display Title" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; width: 220px;">
+                
+                <select [(ngModel)]="selectedFolderId" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: white;">
+                  <option value="">-- No Folder (Global) --</option>
+                  @for(f of folders; track f.id) {
+                    <option [value]="f.id">📁 {{ f.folder_name }}</option>
+                  }
+                </select>
+
+                <select [(ngModel)]="uploadCategory" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                  <option value="General">General</option>
+                  <option value="Report">Report</option>
+                  <option value="Invoice">Invoice</option>
+                  <option value="Syllabus">Syllabus</option>
+                </select>
+                <input type="file" (change)="onFileSelected($event)" style="font-size: 13px;">
+                <button (click)="uploadDocument()" style="background: #1e3a8a; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;">UPLOAD RESOURCE</button>
+              </div>
+            </div>
+          }
+
+          <table style="width: 100%; border-collapse: collapse; background: white; border: 1px solid #e2e8f0;">
+            <tr style="background: #f8fafc; font-size: 11px; text-align: left;">
+              <th style="padding: 15px 25px;">Document Name</th>
+              <th style="padding: 15px 25px;">Category</th>
+              <th style="padding: 15px 25px;">Assigned Folder</th>
+              <th style="padding: 15px 25px; text-align: right;">Action</th>
+            </tr>
+            @for(d of documents; track d.id) {
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                @if (editingDoc?.id === d.id && role === 'Admin') {
+                  <td style="padding: 10px 25px;">
+                    <input [(ngModel)]="editingDoc.title" style="padding: 6px; border: 1px solid #ddd; width: 80%;">
+                  </td>
+                  <td style="padding: 10px 25px;">
+                    <select [(ngModel)]="editingDoc.category" style="padding: 6px;">
+                      <option value="General">General</option>
+                      <option value="Report">Report</option>
+                      <option value="Invoice">Invoice</option>
+                      <option value="Syllabus">Syllabus</option>
+                    </select>
+                  </td>
+                  <td style="padding: 10px 25px;">
+                    <select [(ngModel)]="editingDoc.folder_id" style="padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                      <option [value]="null">-- No Folder (Global) --</option>
+                      @for(f of folders; track f.id) {
+                        <option [value]="f.id">📁 {{ f.folder_name }}</option>
+                      }
+                    </select>
+                  </td>
+                  <td style="padding: 10px 25px; text-align: right;">
+                    <button (click)="saveDocUpdate()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-right: 5px; font-weight: bold;">SAVE</button>
+                    <button (click)="cancelEdit()" style="background: #64748b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">CANCEL</button>
+                  </td>
+                } @else {
+                  <td style="padding: 15px 25px; font-weight: 600;">📄 {{ d.title }}</td>
+                  <td style="padding: 15px 25px; color: #64748b;"><span style="background: #e2e8f0; padding: 3px 8px; border-radius: 4px; font-size: 12px;">{{ d.category }}</span></td>
+                  <td style="padding: 15px 25px; color: #475569; font-size: 13px; font-weight: 500;">
+                    {{ d.folder_name ? '📁 ' + d.folder_name : '🌐 Global / Public' }}
+                  </td>
+                  <td style="padding: 15px 25px; text-align: right;">
+                    <button (click)="downloadFile(d.id, d.title)" style="background: #1e3a8a; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 5px;">Download</button>
+                    @if (role === 'Admin') {
+                      <button (click)="startDocEdit(d)" style="background: #3b82f6; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 5px;">EDIT</button>
+                      <button (click)="removeDocument(d.id)" style="background: #ef4444; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">REMOVE</button>
+                    }
+                  </td>
+                }
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" style="padding: 30px; text-align: center; color: #94a3b8;">No documents found in this directory selection query.</td>
+              </tr>
+            }
+          </table>
         }
 
         @if (activeTab === 'users' && role === 'Admin') {
@@ -115,37 +246,60 @@
           </table>
         }
 
-        @if (activeTab === 'vault') {
-          <div style="display: flex; gap: 10px; margin-bottom: 30px; flex-wrap: wrap;">
-            <button (click)="selectedFolderId = ''; refresh()" [style.background]="selectedFolderId === '' ? '#1e3a8a' : '#e2e8f0'" [style.color]="selectedFolderId === '' ? 'white' : '#1e3a8a'" style="padding: 10px 20px; border-radius: 20px; border: none; cursor: pointer; font-weight: bold;">All Records</button>
-            @for(f of folders; track f.id) {
-              <button (click)="selectedFolderId = f.id; refresh()" [style.background]="selectedFolderId === f.id ? '#1e3a8a' : '#e2e8f0'" [style.color]="selectedFolderId === f.id ? 'white' : '#1e3a8a'" style="padding: 10px 20px; border-radius: 20px; border: none; cursor: pointer; font-weight: bold;">📁 {{ f.folder_name }}</button>
-            }
+        @if (activeTab === 'permissions' && role === 'Admin') {
+          <div style="background: white; padding: 30px; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <h3 style="color: #1e3a8a; margin-top: 0; font-size: 18px;">🔒 SECURITY POLICY CONTROL MATRIX</h3>
+            <p style="color: #64748b; font-size: 14px; margin-bottom: 25px;">Set strict access rule permissions for standard profiles targeting active directories.</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 20px; max-width: 600px;">
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <label style="font-weight: 600; color: #334155;">1. Select Directory Target Folder:</label>
+                <select [(ngModel)]="selectedFolderId" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background-color: #f8fafc;">
+                  <option value="">-- Choose Target Folder --</option>
+                  <option *ngFor="let f of folders" [value]="f.id">{{ f.folder_name }}</option>
+                </select>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <label style="font-weight: 600; color: #334155;">2. Select Target User Profile:</label>
+                <select [(ngModel)]="selectedPermUserId" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background-color: #f8fafc;">
+                  <option value="">-- Choose User --</option>
+                  <option *ngFor="let u of users" [value]="u.id">{{ u.name }} ({{ u.role }})</option>
+                </select>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 10px; margin: 10px 0; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #334155;">
+                  <input type="checkbox" [(ngModel)]="canViewPerm" style="width: 16px; height: 16px;"> Allow Read Access (Can View Folder & Files)
+                </label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #334155;">
+                  <input type="checkbox" [(ngModel)]="canUploadPerm" style="width: 16px; height: 16px;"> Allow Write Access (Can Upload files inside)
+                </label>
+              </div>
+
+              <button (click)="applyFolderPermissions()" style="background: #1e3a8a; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                APPLY POLICY ACCESS RULE
+              </button>
+            </div>
           </div>
-          <table style="width: 100%; border-collapse: collapse; background: white; border: 1px solid #e2e8f0;">
-            <tr style="background: #f8fafc; font-size: 11px; text-align: left;"><th style="padding: 15px 25px;">Document Name</th><th style="padding: 15px 25px; text-align: right;">Action</th></tr>
-            @for(d of documents; track d.id) {
-              <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td style="padding: 15px 25px; font-weight: 600;">📄 {{ d.title }}</td>
-                <td style="padding: 15px 25px; text-align: right;"><button style="background: #1e3a8a; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-size: 12px;">Download</button></td>
-              </tr>
-            }
-          </table>
         }
 
         @if (activeTab === 'logs' && role === 'Admin') {
-          <h3 style="color: #1e3a8a; margin-bottom: 15px;">System Activity Logs</h3>
-          <div style="border: 1px solid #e2e8f0; border-radius: 8px; max-height: 400px; overflow-y: auto; background: white;">
+          <h3 style="color: #1e3a8a; margin-top: 0; font-size: 18px;">➢ SYSTEM AUDIT TRAIL</h3>
+          <table style="width: 100%; border-collapse: collapse; background: white; border: 1px solid #e2e8f0;">
+            <tr style="background: #f8fafc; color: #1e3a8a; font-size: 11px; text-align: left;">
+              <th style="padding: 15px 20px;">User</th>
+              <th style="padding: 15px 20px;">Operation Action</th>
+              <th style="padding: 15px 20px;">Timestamp</th>
+            </tr>
             @for(log of logs; track log.id) {
-              <div style="padding: 15px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; font-size: 13px;">
-                <div style="display: flex; flex-direction: column;">
-                    <span style="font-weight: 600;">{{ log.user_name || 'System' }}</span>
-                    <span>{{ log.action }}</span>
-                </div>
-                <span style="color: #94a3b8; font-size: 11px;">{{ log.action_time | date:'medium' }}</span>
-              </div>
+              <tr style="border-bottom: 1px solid #f1f5f9; font-size: 13px;">
+                <td style="padding: 12px 20px; font-weight: bold;">{{ log.user_name || 'System User' }}</td>
+                <td style="padding: 12px 20px; font-family: monospace; color: #0f172a;">{{ log.action }}</td>
+                <td style="padding: 12px 20px; color: #64748b;">{{ log.action_time | date:'medium' }}</td>
+              </tr>
             }
-          </div>
+          </table>
         }
 
       </div>

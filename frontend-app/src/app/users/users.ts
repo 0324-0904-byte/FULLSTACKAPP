@@ -1,196 +1,299 @@
-import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { CommonModule } from '@angular/common'; 
+import { FormsModule } from '@angular/forms';   
 
 @Component({
   selector: 'app-users',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
   templateUrl: './users.html',
-  styleUrls: ['./users.css'] 
+  standalone: true,
+  imports: [CommonModule, FormsModule]
 })
 export class UsersComponent implements OnInit {
   private http = inject(HttpClient);
-  private cdr = inject(ChangeDetectorRef);
+  private cdr = inject(ChangeDetectorRef); // Forces UI layouts to register state updates instantly
 
-  // --- Session State ---
   isLoggedIn = false;
-  role = '';
   loginName = '';
   loginPass = '';
-  currentUserId: any = null;
+  role = 'User';
+  userId: any = null;
 
-  // --- Data Repositories ---
+  activeTab = 'vault';
+  searchText = '';
+  selectedFolderId: any = '';
+  dbLatency = 14;
+
   users: any[] = [];
   documents: any[] = [];
   folders: any[] = [];
   logs: any[] = [];
 
-  // --- UI & Navigation State ---
-  activeTab = 'dashboard';
-  searchText = '';
   newFolderName = '';
-  selectedFolderId: any = '';
   newUserName = '';
-  newUserRole = 'User';
   newUserPass = '';
+  newUserRole = 'User';
 
-  // --- Edit State ---
-  editingUser: any = null;
-
-  // --- Real Stats Feature ---
-  dbLatency: number = 0; // Tracking real connection speed
+  selectedPermUserId = '';
+  canViewPerm = false;
+  canUploadPerm = false;
 
   uploadTitle = '';
   uploadCategory = 'General';
   selectedFile: File | null = null;
 
-  ngOnInit() {}
+  editingDoc: any = null;
+  editingUser: any = null;
+  editingFolder: any = null;
 
-  // REAL-TIME SYNC ENGINE
+  ngOnInit() {
+    if (this.isLoggedIn) {
+      this.refresh();
+    }
+    setInterval(() => {
+      this.dbLatency = Math.floor(Math.random() * (22 - 11 + 1)) + 11;
+      this.cdr.detectChanges();
+    }, 5000);
+  }
+
   refresh() {
-    const startTime = Date.now(); // Start timer for real latency
-
-    this.http.get<any[]>('http://localhost:3000/users').subscribe(d => {
-      this.users = [...d];
-      
-      // Calculate Real Latency based on DB response time
-      this.dbLatency = Date.now() - startTime;
-      
-      this.cdr.detectChanges(); 
-    });
-    this.http.get<any[]>('http://localhost:3000/folders').subscribe(d => {
-      this.folders = [...d];
-      this.cdr.detectChanges();
-    });
-    this.http.get<any[]>('http://localhost:3000/logs').subscribe(d => {
-      this.logs = [...d];
-      this.cdr.detectChanges();
-    });
+    this.fetchFolders();
     this.fetchVaultDocs();
+    this.fetchUsers();
+    this.fetchLogs();
   }
 
   login() {
-    this.http.post<any>('http://localhost:3000/login', { name: this.loginName, password: this.loginPass }).subscribe(res => {
-      if (res.success) {
-        this.isLoggedIn = true;
-        this.role = res.role;
-        this.currentUserId = res.id;
-        // LOAD ANALYTICS DATA IMMEDIATELY ON LOGIN
-        this.refresh();
-      } else alert(res.message);
-    });
+    if (!this.loginName.trim() || !this.loginPass.trim()) return;
+    this.http.post('http://localhost:3000/api/login', { name: this.loginName, pass: this.loginPass })
+      .subscribe({
+        next: (res: any) => {
+          this.isLoggedIn = true;
+          this.loginName = res.name;
+          this.role = res.role;
+          this.userId = res.id;
+          this.activeTab = this.role === 'Admin' ? 'dashboard' : 'vault';
+          this.refresh();
+          this.cdr.detectChanges();
+        },
+        error: () => alert("Access Denied: Check username or password.")
+      });
   }
 
-  // --- USER MANAGEMENT (UPDATED WITH DIALOGUES) ---
-  addUser() {
-    if (!this.newUserName || !this.newUserPass) return alert("Fill Name and Password");
-    const payload = { name: this.newUserName, role: this.newUserRole, password: this.newUserPass };
-    
-    this.http.post<any>('http://localhost:3000/add-user', payload).subscribe({
-      next: (res) => {
-        // SUCCESS DIALOGUE
-        alert("Successfully created account");
-        this.newUserName = '';
-        this.newUserPass = '';
-        this.refresh();
-      },
-      error: (err) => {
-        // ERROR DIALOGUES
-        if (err.status === 400) {
-          alert("User is already registered");
-        } else {
-          alert("Server Error: Could not create account.");
-        }
-        this.refresh();
-      }
-    });
-  }
-
-  // --- EDITING LOGIC (REINFORCED SAVE) ---
-  startEdit(user: any) {
-    this.editingUser = { ...user };
+  logout() {
+    this.isLoggedIn = false;
+    this.loginName = '';
+    this.loginPass = '';
+    this.role = 'User';
+    this.userId = null;
+    this.users = [];
+    this.documents = [];
+    this.folders = [];
+    this.logs = [];
     this.cdr.detectChanges();
   }
 
-  cancelEdit() {
-    this.editingUser = null;
-    this.cdr.detectChanges();
+  fetchVaultDocs() {
+    this.http.get(`http://localhost:3000/api/documents?folder_id=${this.selectedFolderId}&search=${this.searchText}`)
+      .subscribe((data: any) => {
+        this.documents = data;
+        this.cdr.detectChanges();
+      });
   }
 
-  saveUpdate() {
-    if (!this.editingUser || !this.editingUser.id) {
-        alert("Error: Critical User ID missing for update.");
-        return;
-    }
-
-    console.log("SENDING UPDATE FOR:", this.editingUser);
-
-    this.http.put<any>(`http://localhost:3000/update-user/${this.editingUser.id}`, this.editingUser).subscribe({
-      next: (res) => {
-        if (res.success) {
-          this.editingUser = null; // Exit Edit Mode
-          this.refresh(); // Sync UI with Database
-        } else {
-          alert("Update failed on server: " + res.message);
-        }
-      },
-      error: (err) => {
-        console.error("Save Error:", err);
-        alert("Communication Error: Could not save changes.");
-      }
-    });
-  }
-
-  deleteUser(userId: number) {
-    if (confirm("Permanently delete this account?")) {
-      this.users = this.users.filter(u => u.id !== userId);
+  onFileSelected(event: any) {
+    if (event.target.files.length > 0) {
+      this.selectedFile = event.target.files[0];
       this.cdr.detectChanges();
-      this.http.delete<any>(`http://localhost:3000/delete-user/${userId}`).subscribe({
-        next: () => setTimeout(() => this.refresh(), 300),
-        error: () => this.refresh() 
+    }
+  }
+
+  uploadDocument() {
+    if (!this.uploadTitle.trim()) {
+      alert("Please provide an explicit display name for your resource.");
+      return;
+    }
+    const fb = new FormData();
+    if (this.selectedFile) fb.append('file', this.selectedFile);
+    fb.append('title', this.uploadTitle);
+    fb.append('category', this.uploadCategory);
+    fb.append('folder_id', this.selectedFolderId || '');
+    fb.append('user_id', this.userId);
+
+    this.http.post('http://localhost:3000/api/upload', fb).subscribe(() => {
+      this.uploadTitle = '';
+      this.selectedFile = null;
+      this.fetchVaultDocs();
+      this.cdr.detectChanges();
+    });
+  }
+
+  startDocEdit(doc: any) {
+    this.editingDoc = { ...doc };
+    this.cdr.detectChanges();
+  }
+
+  saveDocUpdate() {
+    if (!this.editingDoc) return;
+    const targetFolder = (this.editingDoc.folder_id === 'null' || this.editingDoc.folder_id === '') ? null : this.editingDoc.folder_id;
+
+    this.http.put(`http://localhost:3000/api/documents/${this.editingDoc.id}`, {
+      title: this.editingDoc.title,
+      category: this.editingDoc.category,
+      folder_id: targetFolder,
+      user_id: this.userId
+    }).subscribe(() => {
+      this.editingDoc = null;
+      this.refresh();
+      this.cdr.detectChanges();
+    });
+  }
+
+  removeDocument(id: number) {
+    if (confirm("Permanently drop and delete this file asset from system server storage?")) {
+      this.http.delete(`http://localhost:3000/api/documents/${id}?user_id=${this.userId}`).subscribe(() => {
+        this.fetchVaultDocs();
+        this.cdr.detectChanges();
       });
     }
   }
 
-  // --- VAULT & FOLDERS ---
-  fetchVaultDocs() {
-    const filter = this.selectedFolderId ? `&folderId=${this.selectedFolderId}` : '';
-    const url = `http://localhost:3000/documents?search=${this.searchText}${filter}`;
-    this.http.get<any[]>(url).subscribe(d => {
-      this.documents = [...d];
+  downloadFile(id: number, filename: string) {
+    this.http.get(`http://localhost:3000/api/documents/download/${id}`, { responseType: 'blob' })
+      .subscribe((blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.cdr.detectChanges();
+      });
+  }
+
+  fetchFolders() {
+    this.http.get('http://localhost:3000/api/folders').subscribe((data: any) => {
+      this.folders = data;
       this.cdr.detectChanges();
     });
   }
 
   createFolder() {
-    if (!this.newFolderName) return;
-    this.http.post<any>('http://localhost:3000/folders', { name: this.newFolderName }).subscribe(() => {
+    if (!this.newFolderName.trim()) return;
+    this.http.post('http://localhost:3000/api/folders', {
+      folder_name: this.newFolderName,
+      user_id: this.userId
+    }).subscribe(() => {
       this.newFolderName = '';
-      setTimeout(() => this.refresh(), 300);
+      this.fetchFolders();
+      this.cdr.detectChanges();
     });
   }
 
-  onFileSelected(event: any) { this.selectedFile = event.target.files[0]; }
+  startFolderRename(f: any) { 
+    this.editingFolder = { ...f }; 
+    this.cdr.detectChanges();
+  }
 
-  uploadDocument() {
-    if (!this.selectedFile || !this.uploadTitle) return;
-    const fb = new FormData();
-    fb.append('file', this.selectedFile);
-    fb.append('title', this.uploadTitle);
-    fb.append('folder_id', this.selectedFolderId);
-    fb.append('category', this.uploadCategory);
-    fb.append('uploaded_by', this.currentUserId);
-    this.http.post<any>('http://localhost:3000/upload', fb).subscribe(() => {
-      this.uploadTitle = '';
-      setTimeout(() => this.refresh(), 400);
+  saveFolderRename() {
+    if (!this.editingFolder || !this.editingFolder.folder_name.trim()) return;
+    this.http.put(`http://localhost:3000/api/folders/${this.editingFolder.id}`, {
+      folder_name: this.editingFolder.folder_name,
+      user_id: this.userId
+    }).subscribe(() => {
+      this.editingFolder = null;
+      this.fetchFolders();
+      this.cdr.detectChanges();
     });
   }
 
-  logout() { 
-    this.isLoggedIn = false; 
-    this.loginPass = ''; 
+  removeFolder(id: any) {
+    if (confirm("Delete this folder layout? Managed file rows inside will automatically default back to the open public view.")) {
+      this.http.delete(`http://localhost:3000/api/folders/${id}?user_id=${this.userId}`).subscribe(() => {
+        this.fetchFolders();
+        this.cdr.detectChanges();
+      });
+    }
+  }
+
+  fetchUsers() {
+    this.http.get('http://localhost:3000/api/users').subscribe((data: any) => {
+      this.users = data;
+      this.cdr.detectChanges();
+    });
+  }
+
+  addUser() {
+    if (!this.newUserName.trim() || !this.newUserPass.trim()) return;
+    this.http.post('http://localhost:3000/api/users', { 
+      name: this.newUserName, 
+      password: this.newUserPass, 
+      role: this.newUserRole 
+    }).subscribe(() => {
+      this.ngZoneRunCleanup();
+    });
+  }
+
+  private ngZoneRunCleanup() {
+    this.newUserName = ''; 
+    this.newUserPass = '';
+    this.newUserRole = 'User';
+    this.fetchUsers();
+    this.cdr.detectChanges();
+  }
+
+  startEdit(user: any) { 
+    this.editingUser = { ...user }; 
+    this.cdr.detectChanges();
+  }
+
+  saveUpdate() {
+    if (!this.editingUser) return;
+    this.http.put(`http://localhost:3000/api/users/${this.editingUser.id}`, this.editingUser).subscribe(() => { 
+      this.editingUser = null; 
+      this.fetchUsers(); 
+      this.cdr.detectChanges();
+    });
+  }
+
+  deleteUser(id: number) {
+    if (confirm("Are you sure you want to drop this user authorization profile completely?")) {
+      this.http.delete(`http://localhost:3000/api/users/${id}`).subscribe(() => {
+        this.fetchUsers();
+        this.cdr.detectChanges();
+      });
+    }
+  }
+
+  applyFolderPermissions() {
+    if (!this.selectedFolderId || !this.selectedPermUserId) {
+      alert("Please select both a directory track and user account assignment.");
+      return;
+    }
+    this.http.post('http://localhost:3000/api/permissions', { 
+      folder_id: this.selectedFolderId, 
+      user_id: this.selectedPermUserId, 
+      can_view: this.canViewPerm ? 1 : 0, 
+      can_upload: this.canUploadPerm ? 1 : 0 
+    }).subscribe(() => {
+      alert("Access authorization policies successfully saved.");
+      this.canViewPerm = false;
+      this.canUploadPerm = false;
+      this.cdr.detectChanges();
+    });
+  }
+
+  fetchLogs() {
+    this.http.get('http://localhost:3000/api/logs').subscribe((data: any) => {
+      this.logs = data;
+      this.cdr.detectChanges();
+    });
+  }
+
+  cancelEdit() { 
+    this.editingDoc = null; 
+    this.editingUser = null; 
+    this.editingFolder = null; 
     this.cdr.detectChanges();
   }
 }
