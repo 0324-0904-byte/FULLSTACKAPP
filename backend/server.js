@@ -9,6 +9,8 @@ const config = require('./config/db.config');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const folderRoutes = require('./routes/folder');
+const documentRoutes = require('./routes/document');
+const logRoutes = require('./routes/log');
 
 const app = express();
 
