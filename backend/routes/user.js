@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const mysql = require("mysql2");
+const bycrypt = require("bcryptjs");
 const config = require("../config/db.config");
 const verifyToken = require("../middleware/auth"); // Protect these routes!
 
@@ -13,7 +14,7 @@ const db = mysql.createConnection({
 
 // GET: All Users (Protected)
 router.get("/", verifyToken, (req, res) => {
-    db.query("SELECT id, name, role, status FROM user ORDER BY name ASC", (err, result) => {
+    db.query("SELECT id, username, role, status FROM user ORDER BY username ASC", (err, result) => {
         if (err) return res.status(500).json(err);
         res.json(result);
     });
@@ -24,13 +25,15 @@ router.get("/", verifyToken, (req, res) => {
 router.post("/", (req, res) => {
     const { name, role, password } = req.body;
 
-    db.query("SELECT * FROM user WHERE name = ?", [name], (err, results) => {
+    db.query("SELECT * FROM user WHERE username = ?", [name], (err, results) => {
         if (err) return res.status(500).json({ success: false, message: "Server error" });
         if (results.length > 0)
             return res.status(400).json({ success: false, message: "An account with this name already exists." });
 
-        const sql = "INSERT INTO user (name, role, password, status) VALUES (?, ?, ?, 'Active')";
-        db.query(sql, [name, role, password], (err) => {
+        const hashedPassword = bycrypt.hashSync(password, 8);
+
+        const sql = "INSERT INTO user (username, role, password, status) VALUES (?, ?, ?, 'Active')";
+        db.query(sql, [name, role, hashedPassword], (err) => {
             if (err) return res.status(500).json({ success: false, message: err.message });
             res.status(201).json({ success: true, message: "User Created Successfully" });
         });
@@ -43,7 +46,7 @@ router.put("/:id", verifyToken, (req, res) => {
     const userId = req.params.id;
     const { name, role, status } = req.body;
 
-    const sql = "UPDATE user SET name = ?, role = ?, status = ? WHERE id = ?";
+    const sql = "UPDATE user SET username = ?, role = ?, status = ? WHERE id = ?";
     db.query(sql, [name, role, status, userId], (err, result) => {
         if (err) return res.status(500).json({ success: false, message: err.message });
         res.json({ success: true, message: "User details updated successfully" });
