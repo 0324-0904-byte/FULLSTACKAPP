@@ -8,6 +8,7 @@ const config = require('./config/db.config');
 // --- ROUTE IMPORTS ---
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+const folderRoutes = require('./routes/folder');
 
 const app = express();
 
@@ -15,6 +16,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// --- STATIC FILE SERVING ---
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // --- DATABASE CONNECTION ---
 const db = mysql.createConnection({
