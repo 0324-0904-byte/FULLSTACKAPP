@@ -52,7 +52,7 @@ export class UsersComponent implements OnInit {
   refresh() {
     const startTime = Date.now(); // Start timer for real latency
 
-    this.http.get<any[]>('http://localhost:3000/users').subscribe(d => {
+    this.http.get<any[]>('http://localhost:3000/users/').subscribe(d => {
       this.users = [...d];
       
       // Calculate Real Latency based on DB response time
@@ -72,7 +72,7 @@ export class UsersComponent implements OnInit {
   }
 
   login() {
-    this.http.post<any>('http://localhost:3000/login', { name: this.loginName, password: this.loginPass }).subscribe(res => {
+    this.http.post<any>('http://localhost:3000/auth/login', { name: this.loginName, password: this.loginPass }).subscribe(res => {
       if (res.success) {
         this.isLoggedIn = true;
         this.role = res.role;
@@ -88,7 +88,7 @@ export class UsersComponent implements OnInit {
     if (!this.newUserName || !this.newUserPass) return alert("Fill Name and Password");
     const payload = { name: this.newUserName, role: this.newUserRole, password: this.newUserPass };
     
-    this.http.post<any>('http://localhost:3000/add-user', payload).subscribe({
+    this.http.post<any>('http://localhost:3000/auth/register', payload).subscribe({
       next: (res) => {
         // SUCCESS DIALOGUE
         alert("Successfully created account");
@@ -127,7 +127,7 @@ export class UsersComponent implements OnInit {
 
     console.log("SENDING UPDATE FOR:", this.editingUser);
 
-    this.http.put<any>(`http://localhost:3000/update-user/${this.editingUser.id}`, this.editingUser).subscribe({
+    this.http.put<any>(`http://localhost:3000/users/${this.editingUser.id}`, this.editingUser).subscribe({
       next: (res) => {
         if (res.success) {
           this.editingUser = null; // Exit Edit Mode
@@ -147,7 +147,7 @@ export class UsersComponent implements OnInit {
     if (confirm("Permanently delete this account?")) {
       this.users = this.users.filter(u => u.id !== userId);
       this.cdr.detectChanges();
-      this.http.delete<any>(`http://localhost:3000/delete-user/${userId}`).subscribe({
+      this.http.delete<any>(`http://localhost:3000/users/${userId}`).subscribe({
         next: () => setTimeout(() => this.refresh(), 300),
         error: () => this.refresh() 
       });

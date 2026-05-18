@@ -1,15 +1,15 @@
 # 1. DEPENDENCIES (Never upload these, they are massive)
-backend/node_modules/
-frontend/node_modules/
+FULLSTACKAPP/backend/node_modules/
+FULLSTACKAPP/frontend-app/node_modules/
 
 # 2. ANGULAR SPECIFIC (Auto-generated build files and local cache)
-frontend/.angular/
-frontend/dist/
-frontend/www/
+FULLSTACKAPP/frontend-app/.angular/
+FULLSTACKAPP/frontend-app/dist/
+FULLSTACKAPP/frontend-app/www/
 
 # 3. SECURITY & CONFIGS (Protects passwords/API keys and local editor settings)
-backend/.env
-frontend/.vscode/
+FULLSTACKAPP/backend/.env
+FULLSTACKAPP/frontend-app/.vscode/
 .idea/
 
 # 4. SYSTEM LOGS & OS FILES
@@ -19,3 +19,5 @@ yarn-debug.log*
 yarn-error.log*
 .DS_Store
 Thumbs.db
+node_modules/
+uploads/

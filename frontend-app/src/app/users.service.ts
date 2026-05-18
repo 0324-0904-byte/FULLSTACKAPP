@@ -6,28 +6,27 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class UsersService {
-  // This is the URL of your Node.js backend running on your HP EliteBook
   private apiUrl = 'http://localhost:3000';
 
   constructor(private http: HttpClient) { }
 
-  // GET: Fetch all active users
+  // GET: Fetch all users
   getUsers(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/users`);
   }
 
   // POST: Add a new user
-  addUser(name: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/add-user`, { name });
+  addUser(name: string, role: string, password: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/register`, { name, role, password });
   }
 
-  // PUT: Update an existing user's name
-  updateUser(id: number, name: string): Observable<any> {
-    return this.http.put(`${this.apiUrl}/update-user/${id}`, { name });
+  // PUT: Update an existing user
+  updateUser(id: number, name: string, role: string, status: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/users/${id}`, { name, role, status });
   }
 
-  // PUT: Soft delete (Status change to Inactive)
-  disableUser(id: number): Observable<any> {
-    return this.http.put(`${this.apiUrl}/disable-user/${id}`, {});
+  // DELETE: Permanently delete a user
+  deleteUser(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/users/${id}`);
   }
 }
