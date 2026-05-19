@@ -47,7 +47,7 @@ router.put("/:id", verifyToken, (req, res) => {
     const { name, role, status } = req.body;
 
     const sql = "UPDATE user SET username = ?, role = ?, status = ? WHERE id = ?";
-    db.query(sql, [name, role, status, userId], (err, result) => {
+    db.query(sql, [username, role, status, userId], (err, result) => {
         if (err) return res.status(500).json({ success: false, message: err.message });
         res.json({ success: true, message: "User details updated successfully" });
     });
