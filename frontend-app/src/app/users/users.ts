@@ -22,9 +22,9 @@ export class UsersComponent implements OnInit {
   currentUserId: any = null;
 
   // --- Data Repositories ---
-  users: any[] = [];
-  documents: any[] = [];
-  folders: any[] = [];
+  user: any[] = [];
+  document: any[] = [];
+  folder: any[] = [];
   logs: any[] = [];
 
   // --- UI & Navigation State ---
@@ -33,7 +33,7 @@ export class UsersComponent implements OnInit {
   newFolderName = '';
   selectedFolderId: any = '';
   newUserName = '';
-  newUserRole = 'User';
+  newUserRole = 'user';
   newUserPass = '';
 
   // --- Edit State ---
@@ -48,45 +48,56 @@ export class UsersComponent implements OnInit {
 
   ngOnInit() {}
 
-  // REAL-TIME SYNC ENGINE
-  refresh() {
-    const startTime = Date.now(); // Start timer for real latency
-
-    this.http.get<any[]>('http://localhost:3000/users/').subscribe(d => {
-      this.users = [...d];
-      
-      // Calculate Real Latency based on DB response time
-      this.dbLatency = Date.now() - startTime;
-      
-      this.cdr.detectChanges(); 
-    });
-    this.http.get<any[]>('http://localhost:3000/folders').subscribe(d => {
-      this.folders = [...d];
-      this.cdr.detectChanges();
-    });
-    this.http.get<any[]>('http://localhost:3000/logs').subscribe(d => {
-      this.logs = [...d];
-      this.cdr.detectChanges();
-    });
-    this.fetchVaultDocs();
-  }
 
   login() {
     this.http.post<any>('http://localhost:3000/auth/login', { name: this.loginName, password: this.loginPass }).subscribe(res => {
-      if (res.success) {
+       if (res.success) {
         this.isLoggedIn = true;
-        this.role = res.role;
-        this.currentUserId = res.id;
+        this.role = res.user.role;
+        this.currentUserId = res.user.id;
+
+        if (res.token) {
+          localStorage.setItem('token', res.token);
+        }
+        console.log("hi", res)
         // LOAD ANALYTICS DATA IMMEDIATELY ON LOGIN
         this.refresh();
       } else alert(res.message);
     });
   }
 
+
+  // REAL-TIME SYNC ENGINE
+  refresh() {
+    const startTime = Date.now(); // Start timer for real latency
+
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    this.http.get<any[]>('http://localhost:3000/users/', { headers }).subscribe(d => {
+      this.user = [...d];
+      
+      // Calculate Real Latency based on DB response time
+      this.dbLatency = Date.now() - startTime;
+      
+      this.cdr.detectChanges(); 
+    });
+    this.http.get<any[]>('http://localhost:3000/folders', { headers }).subscribe(d => {
+      this.folder = [...d];
+      this.cdr.detectChanges();
+    });
+    this.http.get<any[]>('http://localhost:3000/logs', { headers }).subscribe(d => {
+      this.logs = [...d];
+      this.cdr.detectChanges();
+    });
+    this.fetchVaultDocs();
+  }
+
+
   // --- USER MANAGEMENT (UPDATED WITH DIALOGUES) ---
   addUser() {
     if (!this.newUserName || !this.newUserPass) return alert("Fill Name and Password");
-    const payload = { name: this.newUserName, role: this.newUserRole, password: this.newUserPass };
+    const payload = { username: this.newUserName, role: this.newUserRole, password: this.newUserPass };
     
     this.http.post<any>('http://localhost:3000/auth/register', payload).subscribe({
       next: (res) => {
@@ -125,13 +136,17 @@ export class UsersComponent implements OnInit {
         return;
     }
 
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
     console.log("SENDING UPDATE FOR:", this.editingUser);
 
-    this.http.put<any>(`http://localhost:3000/users/${this.editingUser.id}`, this.editingUser).subscribe({
+    this.http.put<any>(`http://localhost:3000/users/${this.editingUser.id}`, this.editingUser, { headers }).subscribe({
       next: (res) => {
         if (res.success) {
           this.editingUser = null; // Exit Edit Mode
           this.refresh(); // Sync UI with Database
+          alert("Update Success!")
         } else {
           alert("Update failed on server: " + res.message);
         }
@@ -143,9 +158,25 @@ export class UsersComponent implements OnInit {
     });
   }
 
+  toggleStatus(userId: number, action: 'activate' | 'deactivate') {
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    // Hits either http://localhost:3000/users/activate/:id or /deactivate/:id
+    this.http.put<any>(`http://localhost:3000/users/${action}/${userId}`, {}, { headers }).subscribe({
+      next: (res) => {
+        this.refresh(); // Sync layout immediately
+      },
+      error: (err) => {
+        console.error(`Failed to ${action} user:`, err);
+        alert(`Could not change user status. (Error ${err.status})`);
+      }
+    });
+  }
+
   deleteUser(userId: number) {
     if (confirm("Permanently delete this account?")) {
-      this.users = this.users.filter(u => u.id !== userId);
+      this.user = this.user.filter(u => u.id !== userId);
       this.cdr.detectChanges();
       this.http.delete<any>(`http://localhost:3000/users/${userId}`).subscribe({
         next: () => setTimeout(() => this.refresh(), 300),
@@ -157,16 +188,16 @@ export class UsersComponent implements OnInit {
   // --- VAULT & FOLDERS ---
   fetchVaultDocs() {
     const filter = this.selectedFolderId ? `&folderId=${this.selectedFolderId}` : '';
-    const url = `http://localhost:3000/documents?search=${this.searchText}${filter}`;
+    const url = `http://localhost:3000/document?search=${this.searchText}${filter}`;
     this.http.get<any[]>(url).subscribe(d => {
-      this.documents = [...d];
+      this.document = [...d];
       this.cdr.detectChanges();
     });
   }
 
   createFolder() {
     if (!this.newFolderName) return;
-    this.http.post<any>('http://localhost:3000/folders', { name: this.newFolderName }).subscribe(() => {
+    this.http.post<any>('http://localhost:3000/folder', { name: this.newFolderName }).subscribe(() => {
       this.newFolderName = '';
       setTimeout(() => this.refresh(), 300);
     });
@@ -180,7 +211,6 @@ export class UsersComponent implements OnInit {
     fb.append('file', this.selectedFile);
     fb.append('title', this.uploadTitle);
     fb.append('folder_id', this.selectedFolderId);
-    fb.append('category', this.uploadCategory);
     fb.append('uploaded_by', this.currentUserId);
     this.http.post<any>('http://localhost:3000/upload', fb).subscribe(() => {
       this.uploadTitle = '';

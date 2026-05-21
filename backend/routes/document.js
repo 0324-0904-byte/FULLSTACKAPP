@@ -6,6 +6,7 @@ const fs = require('fs');
 const mysql = require('mysql2');
 const config = require('../config/db.config');
 const verifyToken = require('../middleware/auth');
+const isAdmin = require('../middleware/role');
 
 const db = mysql.createConnection({
     host: config.DB_HOST,
@@ -55,7 +56,7 @@ router.get('/', verifyToken, (req, res) => {
 
 
 // Secure Upload Document (Protected)
-router.post('/upload', verifyToken, upload.single('file'), (req, res) => {
+router.post('/upload', [verifyToken, isAdmin], upload.single('file'), (req, res) => {
     const { title, category, folder_id } = req.body;
     const userId = req.user.id; // SECURE FIXED: Sourced straight from token!
     const targetFolder = (folder_id && folder_id !== 'null' && folder_id !== '') ? folder_id : null;
@@ -75,8 +76,8 @@ router.post('/upload', verifyToken, upload.single('file'), (req, res) => {
 });
 
 
-// Update Metadata (Protected)
-router.put('/:id', verifyToken, (req, res) => {
+// Update Metadata (ADMIN ONLY)
+router.put('/:id', [verifyToken, isAdmin], (req, res) => {
     const docId = req.params.id;
     const { title, category, folder_id } = req.body;
     const userId = req.user.id; 
@@ -93,8 +94,8 @@ router.put('/:id', verifyToken, (req, res) => {
 });
 
 
-// 4Purge Document Record & Binary Asset (Protected)
-router.delete('/:id', verifyToken, (req, res) => {
+// Document Record & Binary Asset (ADMIN ONLY)
+router.delete('/:id', [verifyToken, isAdmin], (req, res) => {
     const docId = req.params.id;
     const userId = req.user.id;
 
@@ -122,7 +123,7 @@ router.delete('/:id', verifyToken, (req, res) => {
 });
 
 
-// Secure Asset Download Pipeline (Protected)
+// Secure Asset Download Pipeline (Protected) ALL USERS CAN DOWNLOAD
 router.get('/download/:id', verifyToken, (req, res) => {
     const docId = req.params.id;
     const userId = req.user.id;
@@ -138,17 +139,17 @@ router.get('/download/:id', verifyToken, (req, res) => {
 
 
 // Folder Access Permissions Matrix (Protected)
-router.post('/permissions', verifyToken, (req, res) => {
-    const { folder_id, user_id, can_view, can_upload } = req.body;
+// router.post('/permissions', [verifyToken, isAdmin], (req, res) => {
+//     const { folder_id, user_id, can_view, can_upload } = req.body;
 
-    const sql = `INSERT INTO folder_permissions (folder_id, user_id, can_view, can_upload) 
-                 VALUES (?, ?, ?, ?) 
-                 ON DUPLICATE KEY UPDATE can_view = ?, can_upload = ?`;
+//     const sql = `INSERT INTO folder_permissions (folder_id, user_id, can_view, can_upload) 
+//                  VALUES (?, ?, ?, ?) 
+//                  ON DUPLICATE KEY UPDATE can_view = ?, can_upload = ?`;
                  
-    db.query(sql, [folder_id, user_id, can_view, can_upload, can_view, can_upload], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true });
-    });
-});
+//     db.query(sql, [folder_id, user_id, can_view, can_upload, can_view, can_upload], (err) => {
+//         if (err) return res.status(500).json({ error: err.message });
+//         res.json({ success: true });
+//     });
+// });
 
 module.exports = router;

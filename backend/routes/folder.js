@@ -3,6 +3,7 @@ const router = express.Router();
 const mysql = require('mysql2');
 const config = require('../config/db.config');
 const verifyToken = require('../middleware/auth'); 
+const isAdmin = require('../middleware/role');
 
 // Local connection using the clean config parameters
 const db = mysql.createConnection({
@@ -21,7 +22,7 @@ router.get('/', verifyToken, (req, res) => {
 });
 
 // Create Folder Directory (Protected)
-router.post('/', verifyToken, (req, res) => {
+router.post('/', verifyToken, isAdmin, (req, res) => {
     const { folder_name } = req.body; 
     const userId = req.user.id;      
 
@@ -43,7 +44,7 @@ router.post('/', verifyToken, (req, res) => {
 });
 
 // Rename Folder Directory (Protected)
-router.put('/:id', verifyToken, (req, res) => {
+router.put('/:id', verifyToken, isAdmin, (req, res) => {
     const folderId = req.params.id;
     const { folder_name } = req.body;
     const userId = req.user.id; 
@@ -61,7 +62,7 @@ router.put('/:id', verifyToken, (req, res) => {
 });
 
 // Drop Folder Directory Safely (Protected)
-router.delete('/:id', verifyToken, (req, res) => {
+router.delete('/:id', verifyToken, isAdmin, (req, res) => {
     const folderId = req.params.id;
     const userId = req.user.id; 
 

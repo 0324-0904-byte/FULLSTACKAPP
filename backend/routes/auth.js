@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const mysql = require("mysql2");
 const config = require("../config/db.config");
+const verifyToken = require("../middleware/auth");
 
 // Create database connection for this router
 const db = mysql.createConnection({
@@ -59,10 +60,35 @@ router.post("/login", (req, res) => {
             { expiresIn: "1h" }
         );
 
-        res.json({
-            success: true,
-            token: token,
-            user: { id: user.id, name: user.name, role: user.role }
+        const logSql = "INSERT INTO login_history (user_id, login_timestamp) VALUES (?, NOW())";
+        db.query(logSql, [user.id], (logErr) => {
+            if (logErr) {
+                console.error("Database failed to record login audit:", logErr.message);
+            }
+
+            res.json({
+                success: true,
+                token: token,
+                user: { id: user.id, name: user.name, role: user.role }
+            });
+        });
+    });
+});
+
+// Logout with logout history
+router.post("/logout", verifyToken, (req, res) => {
+    const userId = req.user.id;
+
+    // 📝 WRITE TO LOGOUT LOGS TABLE
+    const logSql = "INSERT INTO logout_history (user_id, logout_timestamp) VALUES (?, NOW())";
+    db.query(logSql, [userId], (err) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: "Failed to record logout history." });
+        }
+
+        res.json({ 
+            success: true, 
+            message: "Logout successfully. " 
         });
     });
 });

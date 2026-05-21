@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const mysql = require("mysql2");
-const bycrypt = require("bcryptjs");
+const bcrypt = require("bcryptjs");
 const config = require("../config/db.config");
-const verifyToken = require("../middleware/auth"); // Protect these routes!
+const verifyToken = require("../middleware/auth"); 
+const isAdmin = require('../middleware/role');
 
 const db = mysql.createConnection({
     host: config.DB_HOST,
@@ -13,7 +14,7 @@ const db = mysql.createConnection({
 });
 
 // GET: All Users (Protected)
-router.get("/", verifyToken, (req, res) => {
+router.get("/", [verifyToken, isAdmin], (req, res) => {
     db.query("SELECT id, username, role, status FROM user ORDER BY username ASC", (err, result) => {
         if (err) return res.status(500).json(err);
         res.json(result);
@@ -22,10 +23,10 @@ router.get("/", verifyToken, (req, res) => {
 
 
 // POST: Add User
-router.post("/", (req, res) => {
-    const { name, role, password } = req.body;
+router.post("/", [verifyToken, isAdmin], (req, res) => {
+    const { username, role, password } = req.body;
 
-    db.query("SELECT * FROM user WHERE username = ?", [name], (err, results) => {
+    db.query("SELECT * FROM user WHERE username = ?", [username], (err, results) => {
         if (err) return res.status(500).json({ success: false, message: "Server error" });
         if (results.length > 0)
             return res.status(400).json({ success: false, message: "An account with this name already exists." });
@@ -33,7 +34,7 @@ router.post("/", (req, res) => {
         const hashedPassword = bcrypt.hashSync(password, 8);
 
         const sql = "INSERT INTO user (username, role, password, status) VALUES (?, ?, ?, 'Active')";
-        db.query(sql, [name, role, hashedPassword], (err) => {
+        db.query(sql, [username, role, hashedPassword], (err) => {
             if (err) return res.status(500).json({ success: false, message: err.message });
             res.status(201).json({ success: true, message: "User Created Successfully" });
         });
@@ -43,14 +44,14 @@ router.post("/", (req, res) => {
 
 // PUT: Update User (Protected)
 // PUT: Update User (Protected - Active Users Only)
-router.put("/:id", verifyToken, (req, res) => {
+router.put("/:id", [verifyToken, isAdmin], (req, res) => {
     const userId = req.params.id;
-    const { name, role } = req.body;
+    const { username, role } = req.body;
 
     // We add 'AND status = "active"' to ensure only active users get modified
     const sql = "UPDATE user SET username = ?, role = ? WHERE id = ? AND status = 'active'";
     
-    db.query(sql, [name, role, userId], (err, result) => {
+    db.query(sql, [username, role, userId], (err, result) => {
         if (err) {
             return res.status(500).json({ success: false, message: err.message });
         }
@@ -69,7 +70,7 @@ router.put("/:id", verifyToken, (req, res) => {
 
 
 // UPDATE: Soft-delete / Deactivate User (Protected)
-router.put("/deactivate/:id", verifyToken, (req, res) => {
+router.put("/deactivate/:id", [verifyToken, isAdmin], (req, res) => {
     const userId = req.params.id;
     const targetStatus = 'deactivated'; // Explicitly defined variable
 
@@ -90,7 +91,8 @@ router.put("/deactivate/:id", verifyToken, (req, res) => {
     });
 });
 
-router.put("/activate/:id", verifyToken, (req, res) => {
+// activate back deactivated users
+router.put("/activate/:id", [verifyToken, isAdmin], (req, res) => {
     const userId = req.params.id;
     const targetStatus = 'active'; // Explicitly defined variable
 
@@ -103,7 +105,6 @@ router.put("/activate/:id", verifyToken, (req, res) => {
         }
 
         if (result.affectedRows === 0) {
-
             return res.status(404).json({ success: false, message: "User not found" });
         }
 
