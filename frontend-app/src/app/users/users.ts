@@ -50,23 +50,31 @@ export class UsersComponent implements OnInit {
   ngOnInit() {}
 
 
-  login() {
-    this.http.post<any>('http://localhost:3000/auth/login', { name: this.loginName, password: this.loginPass }).subscribe(res => {
-       if (res.success) {
-        this.isLoggedIn = true;
-        this.role = res.user.role;
-        this.currentUserId = res.user.id;
-        this.activeLogId = res.activeLogId;
+login() {
+  this.http.post<any>('http://localhost:3000/auth/login', { name: this.loginName, password: this.loginPass }).subscribe(res => {
+     if (res.success) {
+      this.isLoggedIn = true;
+      this.role = res.user.role;
+      this.currentUserId = res.user.id;
+      this.activeLogId = res.activeLogId;
 
-        if (res.token) {
-          localStorage.setItem('token', res.token);
-        }
-        console.log("hi", res)
-        // LOAD ANALYTICS DATA IMMEDIATELY ON LOGIN
-        this.refresh();
-      } else alert(res.message);
-    });
-  }
+      if (res.token) {
+        localStorage.setItem('token', res.token);
+      }
+      console.log("hi", res)
+
+      // DYNAMIC REDIRECT BASED ON THE RESPONSED ROLE
+      if (this.role === 'admin') {
+        this.activeTab = 'dashboard';
+      } else {
+        this.activeTab = 'vault'; // Send regular users straight to the Documents vault
+      }
+
+      // LOAD ANALYTICS DATA IMMEDIATELY ON LOGIN
+      this.refresh();
+    } else alert(res.message);
+  });
+}
 
 
   // REAL-TIME SYNC ENGINE
@@ -99,7 +107,7 @@ export class UsersComponent implements OnInit {
   // --- USER MANAGEMENT (UPDATED WITH DIALOGUES) ---
   addUser() {
     if (!this.newUserName || !this.newUserPass) return alert("Fill Name and Password");
-    const payload = { username: this.newUserName, role: this.newUserRole, password: this.newUserPass };
+    const payload = { name: this.newUserName, role: this.newUserRole, password: this.newUserPass };
     
     this.http.post<any>('http://localhost:3000/auth/register', payload).subscribe({
       next: (res) => {
@@ -114,7 +122,7 @@ export class UsersComponent implements OnInit {
         if (err.status === 400) {
           alert("User is already registered");
         } else {
-          alert("Server Error: Could not create account.");
+          alert("Server Error: Could not create account." + err.status);
         }
         this.refresh();
       }
@@ -132,59 +140,52 @@ export class UsersComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
+
   saveUpdate() {
     if (!this.editingUser || !this.editingUser.id) {
-        alert("Error: Critical User ID missing for update.");
-        return;
+      alert("Error: Critical User ID missing for update.");
+      return;
     }
 
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    console.log("SENDING UPDATE FOR:", this.editingUser);
+    const updatePayload = {
+      username: this.editingUser.username,
+      role: this.editingUser.role,
+      status: this.editingUser.status 
+    };
 
-    this.http.put<any>(`http://localhost:3000/users/${this.editingUser.id}`, this.editingUser, { headers }).subscribe({
+    this.http.put<any>(`http://localhost:3000/users/${this.editingUser.id}`, updatePayload, { headers }).subscribe({
       next: (res) => {
         if (res.success) {
-          this.editingUser = null; // Exit Edit Mode
-          this.refresh(); // Sync UI with Database
-          alert("Update Success!")
+          this.editingUser = null; 
+          this.refresh(); 
+          alert("Update Success!");
         } else {
-          alert("Update failed on server: " + res.message);
+          alert("Update failed: " + res.message);
         }
       },
       error: (err) => {
-        console.error("Save Error:", err);
-        alert("Communication Error: Could not save changes.");
+        alert("Communication Error: " + (err.error?.message || "Could not save."));
       }
     });
   }
 
-  toggleStatus(userId: number, action: 'activate' | 'deactivate') {
+  toggleStatus(userId: number, currentStatus: 'active' | 'deactivated') {
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
+    
+    const nextStatus = currentStatus === 'active' ? 'deactivated' : 'active';
 
-    // Hits either http://localhost:3000/users/activate/:id or /deactivate/:id
-    this.http.put<any>(`http://localhost:3000/users/${action}/${userId}`, {}, { headers }).subscribe({
+    this.http.put<any>(`http://localhost:3000/users/status/${userId}`, { status: nextStatus }, { headers }).subscribe({
       next: (res) => {
-        this.refresh(); // Sync layout immediately
+        this.refresh(); 
       },
       error: (err) => {
-        console.error(`Failed to ${action} user:`, err);
-        alert(`Could not change user status. (Error ${err.status})`);
+        alert(`Could not change user status.`);
       }
     });
-  }
-
-  deleteUser(userId: number) {
-    if (confirm("Permanently delete this account?")) {
-      this.user = this.user.filter(u => u.id !== userId);
-      this.cdr.detectChanges();
-      this.http.delete<any>(`http://localhost:3000/users/${userId}`).subscribe({
-        next: () => setTimeout(() => this.refresh(), 300),
-        error: () => this.refresh() 
-      });
-    }
   }
 
   // --- VAULT & FOLDERS ---

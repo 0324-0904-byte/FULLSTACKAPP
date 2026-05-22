@@ -54,7 +54,7 @@ router.post("/login", (req, res) => {
         const token = jwt.sign(
             { id: user.id, name: user.username, role: user.role }, 
             config.JWT_SECRET, 
-            { expiresIn: "1h" }
+            { expiresIn: "5h" }
         );
 
         // FIX: Target the brand-new 'logs' table instead of 'login_history'

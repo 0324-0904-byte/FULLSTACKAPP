@@ -42,73 +42,30 @@ router.post("/", [verifyToken, isAdmin], (req, res) => {
 });
 
 
-// PUT: Update User (Protected)
-// PUT: Update User (Protected - Active Users Only)
+// PUT: Update User (name, role, status, soft-delete)
 router.put("/:id", [verifyToken, isAdmin], (req, res) => {
     const userId = req.params.id;
-    const { username, role } = req.body;
+    const { username, role, status } = req.body; 
 
-    // We add 'AND status = "active"' to ensure only active users get modified
-    const sql = "UPDATE user SET username = ?, role = ? WHERE id = ? AND status = 'active'";
+    if (status && !['active', 'deactivated'].includes(status)) {
+        return res.status(400).json({ success: false, message: "Invalid status value." });
+    }
+
+    const sql = "UPDATE user SET username = ?, role = ?, status = ? WHERE id = ?";
     
-    db.query(sql, [username, role, userId], (err, result) => {
+    db.query(sql, [username, role, status, userId], (err, result) => {
         if (err) {
             return res.status(500).json({ success: false, message: err.message });
         }
         
         if (result.affectedRows === 0) {
-            return res.status(400).json({ 
+            return res.status(404).json({ 
                 success: false, 
-                message: "User not found or account is deactivated. Update rejected." 
+                message: "User not found." 
             });
         }
 
-        res.json({ success: true, message: "User details updated successfully" });
-    });
-});
-
-
-
-// UPDATE: Soft-delete / Deactivate User (Protected)
-router.put("/deactivate/:id", [verifyToken, isAdmin], (req, res) => {
-    const userId = req.params.id;
-    const targetStatus = 'deactivated'; // Explicitly defined variable
-
-    // Use placeholders for BOTH values to guarantee safe injection and mapping
-    const sql = "UPDATE user SET status = ? WHERE id = ?";
-
-    db.query(sql, [targetStatus, userId], (err, result) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: "Server error during deactivation" });
-        }
-
-        if (result.affectedRows === 0) {
-
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
-
-        res.json({ success: true, message: "User status updated to deactivated" });
-    });
-});
-
-// activate back deactivated users
-router.put("/activate/:id", [verifyToken, isAdmin], (req, res) => {
-    const userId = req.params.id;
-    const targetStatus = 'active'; // Explicitly defined variable
-
-    // Use placeholders for BOTH values to guarantee safe injection and mapping
-    const sql = "UPDATE user SET status = ? WHERE id = ?";
-
-    db.query(sql, [targetStatus, userId], (err, result) => {
-        if (err) {
-            return res.status(500).json({ success: false, message: "Server error during activation" });
-        }
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: "User not found" });
-        }
-
-        res.json({ success: true, message: "User status updated to activated" });
+        res.json({ success: true, message: "User details and status updated successfully" });
     });
 });
 
