@@ -20,6 +20,7 @@ export class UsersComponent implements OnInit {
   loginName = '';
   loginPass = '';
   currentUserId: any = null;
+  activeLogId: any = null;
 
   // --- Data Repositories ---
   user: any[] = [];
@@ -55,6 +56,7 @@ export class UsersComponent implements OnInit {
         this.isLoggedIn = true;
         this.role = res.user.role;
         this.currentUserId = res.user.id;
+        this.activeLogId = res.activeLogId;
 
         if (res.token) {
           localStorage.setItem('token', res.token);
@@ -219,8 +221,32 @@ export class UsersComponent implements OnInit {
   }
 
   logout() { 
-    this.isLoggedIn = false; 
-    this.loginPass = ''; 
-    this.cdr.detectChanges();
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    this.http.post<any>('http://localhost:3000/auth/logout', { activeLogId: this.activeLogId }, { headers }).subscribe({
+      next: () => {
+        this.isLoggedIn = false; 
+        this.loginName = '';
+        this.loginPass = ''; 
+        this.role = '';
+        this.currentUserId = null;
+        this.activeLogId = null;
+        localStorage.removeItem('token');
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error("Failed to record logout stamp gracefully:", err);
+        
+        this.isLoggedIn = false; 
+        this.loginName = '';
+        this.loginPass = ''; 
+        this.role = '';
+        this.currentUserId = null;
+        this.activeLogId = null;
+        localStorage.removeItem('token');
+        this.cdr.detectChanges();
+      }
+    });
   }
 }

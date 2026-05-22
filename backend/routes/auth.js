@@ -6,7 +6,6 @@ const mysql = require("mysql2");
 const config = require("../config/db.config");
 const verifyToken = require("../middleware/auth");
 
-// Create database connection for this router
 const db = mysql.createConnection({
     host: config.DB_HOST,
     user: config.DB_USER,
@@ -14,21 +13,19 @@ const db = mysql.createConnection({
     database: config.DB_NAME
 });
 
-// POST: Register / Add User securely
+// POST: Register
 router.post("/register", (req, res) => {
     const { name, role, password } = req.body;
 
-    // Check if user exists
     db.query("SELECT * FROM user WHERE username = ?", [name], (err, results) => {
         if (err) return res.status(500).json({ success: false, message: err.message });
         if (results.length > 0) {
             return res.status(400).json({ success: false, message: "An account with this name already exists." });
         }
 
-        // Hash the password securely
         const hashedPassword = bcrypt.hashSync(password, 10);
-
-        const sql = "INSERT INTO user (username, role, password, status) VALUES (?, ?, ?, 'Active')";
+        const sql = "INSERT INTO user (username, role, password, status) VALUES (?, ?, ?, 'active')";
+        
         db.query(sql, [name, role, hashedPassword], (err) => {
             if (err) return res.status(500).json({ success: false, message: err.message });
             res.status(201).json({ success: true, message: "User Registered Successfully" });
@@ -60,38 +57,45 @@ router.post("/login", (req, res) => {
             { expiresIn: "1h" }
         );
 
-        const logSql = "INSERT INTO login_history (user_id, login_timestamp) VALUES (?, NOW())";
-        db.query(logSql, [user.id], (logErr) => {
+        // FIX: Target the brand-new 'logs' table instead of 'login_history'
+        const logSql = "INSERT INTO logs (user_id, login_timestamp) VALUES (?, NOW())";
+        db.query(logSql, [user.id], (logErr, logResult) => {
             if (logErr) {
                 console.error("Database failed to record login audit:", logErr.message);
+                return res.status(500).json({ success: false, message: "Logging initialization failed." });
             }
 
+            // Return activeLogId so users.ts can save it for logout tracking
             res.json({
                 success: true,
                 token: token,
-                user: { id: user.id, name: user.name, role: user.role }
+                activeLogId: logResult.insertId, 
+                user: { id: user.id, name: user.username, role: user.role }
             });
         });
     });
 });
 
-// Logout with logout history
+// POST: Logout 
 router.post("/logout", verifyToken, (req, res) => {
-    const userId = req.user.id;
+    const { activeLogId } = req.body;
 
-    // 📝 WRITE TO LOGOUT LOGS TABLE
-    const logSql = "INSERT INTO logout_history (user_id, logout_timestamp) VALUES (?, NOW())";
-    db.query(logSql, [userId], (err) => {
+    if (!activeLogId) {
+        return res.status(400).json({ success: false, message: "Missing active session tracking ID parameter." });
+    }
+
+    // Set logout timestamp for the current record
+    const logSql = "UPDATE logs SET logout_timestamp = NOW() WHERE id = ?";
+    db.query(logSql, [activeLogId], (err) => {
         if (err) {
-            return res.status(500).json({ success: false, message: "Failed to record logout history." });
+            return res.status(500).json({ success: false, message: "Failed to record logout history asset." });
         }
 
         res.json({ 
             success: true, 
-            message: "Logout successfully. " 
+            message: "Logout completed smoothly." 
         });
     });
 });
 
-// exports the router object so server.js can register these routes
 module.exports = router;

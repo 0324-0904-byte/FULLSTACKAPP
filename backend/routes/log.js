@@ -11,21 +11,18 @@ const db = mysql.createConnection({
     database: config.DB_NAME
 });
 
-// Fetch System Operational Audits (Protected)
+// Fetch System Operational Audits (Protected) 
 router.get('/logs', verifyToken, (req, res) => {
     const sql = `
-        SELECT * FROM (
-            SELECT lh.id, lh.user_id, u.username AS user_name, 'User Login Successful' AS action, lh.login_timestamp AS action_time
-            FROM login_history lh
-            LEFT JOIN user u ON lh.user_id = u.id
-            
-            UNION ALL
-            
-            SELECT lo.id, lo.user_id, u.username AS user_name, 'User Logout Successful' AS action, lo.logout_timestamp AS action_time
-            FROM logout_history lo
-            LEFT JOIN user u ON lo.user_id = u.id
-        ) AS unified_logs
-        ORDER BY action_time DESC`;
+        SELECT 
+            l.id, 
+            l.user_id, 
+            u.username AS user_name, 
+            IF(l.logout_timestamp IS NULL, 'User Login Successful (Active)', 'User Session Terminated / Logout') AS action, 
+            l.login_timestamp AS action_time
+        FROM logs l
+        LEFT JOIN user u ON l.user_id = u.id
+        ORDER BY l.login_timestamp DESC`;
                  
     db.query(sql, (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
