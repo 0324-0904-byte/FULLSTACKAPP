@@ -87,22 +87,32 @@ login() {
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    this.http.get<any[]>('http://localhost:3000/users/', { headers }).subscribe(d => {
-      this.user = [...d];
-      
-      // Calculate Real Latency based on DB response time
+    // ADMIN-ONLY DATA FETCHING
+    if (this.role === 'admin') {
+      this.http.get<any[]>('http://localhost:3000/users/', { headers }).subscribe(d => {
+        this.user = [...d];
+        
+        // Calculate Real Latency based on DB response time
+        this.dbLatency = Date.now() - startTime;
+        
+        this.cdr.detectChanges(); 
+      });
+
+      this.http.get<any[]>('http://localhost:3000/logs', { headers }).subscribe(d => {
+        this.logs = [...d];
+        this.cdr.detectChanges();
+      });
+    } else {
+      // Regular users don't fetch user/log lists, but we can still show a fast UI latency baseline
       this.dbLatency = Date.now() - startTime;
-      
-      this.cdr.detectChanges(); 
-    });
+    }
+
+    // 🔓 GLOBAL DATA FETCHING (Everyone has access to these)
     this.http.get<any[]>('http://localhost:3000/folders', { headers }).subscribe(d => {
       this.folder = [...d];
       this.cdr.detectChanges();
     });
-    this.http.get<any[]>('http://localhost:3000/logs', { headers }).subscribe(d => {
-      this.logs = [...d];
-      this.cdr.detectChanges();
-    });
+
     this.fetchVaultDocs();
   }
 
