@@ -14,15 +14,15 @@ const db = mysql.createConnection({
 });
 
 // Fetch All Folders (Protected)
-router.get('/', verifyToken, (req, res) => {
-    db.query("SELECT * FROM folder ORDER BY folder_name ASC", (err, result) => {
+router.get('/folders', verifyToken, (req, res) => {
+    db.query("SELECT folder_id AS id, folder_name, managed_by FROM folder ORDER BY folder_name ASC", (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(result);
     });
 });
 
 // Create Folder Directory (Protected)
-router.post('/', verifyToken, isAdmin, (req, res) => {
+router.post('/folders', verifyToken, isAdmin, (req, res) => {
     const { folder_name } = req.body; 
     const userId = req.user.id;      
 
@@ -44,7 +44,7 @@ router.post('/', verifyToken, isAdmin, (req, res) => {
 });
 
 // Rename Folder Directory (Protected)
-router.put('/:id', verifyToken, isAdmin, (req, res) => {
+router.put('/folders/:id', verifyToken, isAdmin, (req, res) => {
     const folderId = req.params.id;
     const { folder_name } = req.body;
     const userId = req.user.id; 
@@ -62,7 +62,7 @@ router.put('/:id', verifyToken, isAdmin, (req, res) => {
 });
 
 // Drop Folder Directory Safely (Protected)
-router.delete('/:id', verifyToken, isAdmin, (req, res) => {
+router.delete('/folders/:id', verifyToken, isAdmin, (req, res) => {
     const folderId = req.params.id;
     const userId = req.user.id; 
 
