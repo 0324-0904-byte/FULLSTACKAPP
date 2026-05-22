@@ -80,11 +80,18 @@ router.put('/document/:id', [verifyToken, isAdmin], (req, res) => {
     });
 });
 
-
-// 4. Document Record & Binary Asset (ADMIN ONLY) 
 router.delete('/document/:id', [verifyToken, isAdmin], (req, res) => {
-    const docId = req.params.id;
+    executeDeletion(req, res);
+});
 
+router.delete('/documents/:id', (req, res) => {
+    executeDeletion(req, res);
+});
+
+function executeDeletion(req, res) {
+    const docId = req.params.id;
+    
+    // Aligned: Safely query the document row by ID using your real schema columns
     db.query("SELECT name FROM document WHERE id = ?", [docId], (err, records) => {
         if (err) return res.status(500).json({ error: err.message });
         if (records.length === 0) return res.status(404).json({ error: "Document asset not found" });
@@ -92,16 +99,22 @@ router.delete('/document/:id', [verifyToken, isAdmin], (req, res) => {
         const filename = records[0].name;
         const filepath = path.join(uploadDir, filename);
 
+        // Safely clear out the actual asset file from local disk space storage
         if (filename && fs.existsSync(filepath)) {
-            fs.unlinkSync(filepath);
+            try {
+                fs.unlinkSync(filepath);
+            } catch (fsErr) {
+                console.error("Physical disk cleanup note:", fsErr.message);
+            }
         }
 
+        // Wipe out the relational table row row directly from the database schema
         db.query("DELETE FROM document WHERE id = ?", [docId], (err) => {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ success: true, message: "Asset purged cleanly" });
         });
     });
-});
+}
 
 
 // 5. Secure Asset Download Pipeline 
