@@ -58,7 +58,7 @@ router.post("/login", (req, res) => {
         );
 
         // FIX: Target the brand-new 'logs' table instead of 'login_history'
-        const logSql = "INSERT INTO logs (user_id, login_timestamp) VALUES (?, NOW())";
+        const logSql = "INSERT INTO logs (user_id, action, login_timestamp) VALUES (?, 'User logged in',NOW())";
         db.query(logSql, [user.id], (logErr, logResult) => {
             if (logErr) {
                 console.error("Database failed to record login audit:", logErr.message);
