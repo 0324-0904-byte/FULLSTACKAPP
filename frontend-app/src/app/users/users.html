@@ -116,23 +116,115 @@
           </table>
         }
 
+                
         @if (activeTab === 'vault') {
-          <div style="display: flex; gap: 10px; margin-bottom: 30px; flex-wrap: wrap;">
-            <button (click)="selectedFolderId = ''; refresh()" [style.background]="selectedFolderId === '' ? '#1e3a8a' : '#e2e8f0'" [style.color]="selectedFolderId === '' ? 'white' : '#1e3a8a'" style="padding: 10px 20px; border-radius: 20px; border: none; cursor: pointer; font-weight: bold;">All Records</button>
+        <div style="background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 25px;">
+          <h4 style="margin: 0 0 12px; color: #1e3a8a;">➢ FOLDER STRUCTURE MANAGEMENT</h4>
+          
+          @if (role === 'admin') {
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+              <input [(ngModel)]="newFolderName" placeholder="Create new folder directory name..." style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 250px;">
+              <button (click)="createFolder()" style="background: #10b981; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">+ NEW FOLDER</button>
+            </div>
+          }
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <button (click)="selectedFolderId = ''; fetchVaultDocs()" [style.background]="selectedFolderId === '' ? '#1e3a8a' : '#e2e8f0'" [style.color]="selectedFolderId === '' ? 'white' : '#1e3a8a'" style="padding: 10px 20px; border-radius: 20px; border: none; cursor: pointer; font-weight: bold;">All Records</button>
+            
             @for(f of folder; track f.id) {
-              <button (click)="selectedFolderId = f.id; refresh()" [style.background]="selectedFolderId === f.id ? '#1e3a8a' : '#e2e8f0'" [style.color]="selectedFolderId === f.id ? 'white' : '#1e3a8a'" style="padding: 10px 20px; border-radius: 20px; border: none; cursor: pointer; font-weight: bold;">📁 {{ f.folder_name }}</button>
+              <div style="display: flex; align-items: center; background: #e2e8f0; border-radius: 20px; padding-right: 8px; gap: 4px;">
+                <button (click)="selectedFolderId = f.id; fetchVaultDocs()" [style.background]="selectedFolderId === f.id ? '#1e3a8a' : 'transparent'" [style.color]="selectedFolderId === f.id ? 'white' : '#1e3a8a'" style="padding: 10px 15px; border-radius: 20px; border: none; cursor: pointer; font-weight: bold;">
+                  📁 {{ f.folder_name }}
+                </button>
+                
+                @if (role === 'admin') {
+                  <button (click)="startFolderRename(f)" style="background: none; border: none; color: #3b82f6; cursor: pointer; padding: 0 2px;" title="Rename Folder">✏️</button>
+                  <button (click)="removeFolder(f.id)" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 2px;" title="Delete Folder">❌</button>
+                }
+              </div>
             }
           </div>
-          <table style="width: 100%; border-collapse: collapse; background: white; border: 1px solid #e2e8f0;">
-            <tr style="background: #f8fafc; font-size: 11px; text-align: left;"><th style="padding: 15px 25px;">Document Name</th><th style="padding: 15px 25px; text-align: right;">Action</th></tr>
-            @for(d of document; track d.id) {
-              <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td style="padding: 15px 25px; font-weight: 600;">📄 {{ d.title }}</td>
-                <td style="padding: 15px 25px; text-align: right;"><button style="background: #1e3a8a; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-size: 12px;">Download</button></td>
-              </tr>
-            }
-          </table>
+
+          @if (editingFolder && role === 'admin') {
+            <div style="margin-top: 15px; padding: 12px; background: white; border: 1px dashed #3b82f6; border-radius: 6px; display: flex; gap: 10px; align-items: center;">
+              <span style="font-size: 13px; font-weight: bold; color: #1e3a8a;">Rename Folder:</span>
+              <input [(ngModel)]="editingFolder.folder_name" style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; width: 200px;">
+              <button (click)="saveFolderRename()" style="background: #10b981; color: white; padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">SAVE</button>
+              <button (click)="cancelDocEdit()" style="background: #64748b; color: white; padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">CANCEL</button>
+            </div>
+          }
+        </div>
+
+        <div style="margin-bottom: 25px; display: flex; gap: 10px;">
+          <input [(ngModel)]="searchText" (input)="fetchVaultDocs()" placeholder="Search documents by keyword..." style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1;">
+        </div>
+
+        @if (role === 'admin') {
+          <div style="background: #f8fafc; padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 30px;">
+            <h4 style="margin: 0 0 15px; color: #0f172a;">➢ [ADMIN] UPLOAD DOCUMENT TO SYSTEM</h4>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+              <input [(ngModel)]="uploadTitle" placeholder="Document Display Title" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; width: 220px;">
+              
+              <select [(ngModel)]="selectedFolderId" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: white;">
+                <option value="">-- No Folder (Global) --</option>
+                @for(f of folder; track f.id) {
+                  <option [value]="f.id">📁 {{ f.folder_name }}</option>
+                }
+              </select>
+
+              <input type="file" (change)="onFileSelected($event)" style="font-size: 13px;">
+              <button (click)="uploadDocument()" style="background: #1e3a8a; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;">UPLOAD RESOURCE</button>
+            </div>
+          </div>
         }
+
+        <table style="width: 100%; border-collapse: collapse; background: white; border: 1px solid #e2e8f0;">
+          <tr style="background: #f8fafc; font-size: 11px; text-align: left;">
+            <th style="padding: 15px 25px;">Document Name</th>
+            <th style="padding: 15px 25px;">Assigned Folder</th>
+            <th style="padding: 15px 25px; text-align: right;">Action</th>
+          </tr>
+          @for(d of document; track d.id) {
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              @if (editingDoc?.id === d.id && role === 'admin') {
+                <td style="padding: 10px 25px;">
+                  <input [(ngModel)]="editingDoc.title" style="padding: 6px; border: 1px solid #ddd; width: 80%;">
+                </td>
+                <td style="padding: 10px 25px;">
+                  <select [(ngModel)]="editingDoc.folder_id" style="padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                    <option [value]="null">-- No Folder (Global) --</option>
+                    @for(f of folder; track f.id) {
+                      <option [value]="f.id">📁 {{ f.folder_name }}</option>
+                    }
+                  </select>
+                </td>
+                <td style="padding: 10px 25px; text-align: right;">
+                  <button (click)="saveDocUpdate()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-right: 5px; font-weight: bold;">SAVE</button>
+                  <button (click)="cancelDocEdit()" style="background: #64748b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">CANCEL</button>
+                </td>
+              } @else {
+                <td style="padding: 15px 25px; font-weight: 600;">📄 {{ d.title }}</td>
+                <td style="padding: 15px 25px; color: #475569; font-size: 13px; font-weight: 500;">
+                  {{ d.folder_name ? '📁 ' + d.folder_name : '🌐 Global / Public' }}
+                </td>
+                <td style="padding: 15px 25px; text-align: right;">
+                  <button (click)="downloadFile(d.id, d.title)" style="background: #1e3a8a; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 5px;">Download</button>
+                  
+                  @if (role === 'admin') {
+                    <button (click)="startDocEdit(d)" style="background: #3b82f6; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 5px;">EDIT</button>
+                    <button (click)="removeDocument(d.id)" style="background: #ef4444; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">REMOVE</button>
+                  }
+                </td>
+              }
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="3" style="padding: 30px; text-align: center; color: #94a3b8;">No documents found in this directory selection query.</td>
+            </tr>
+          }
+        </table>
+      }
+
 
         @if (activeTab === 'logs' && role === 'admin') {
           <h3 style="color: #1e3a8a; margin-bottom: 15px;">System Activity Logs</h3>

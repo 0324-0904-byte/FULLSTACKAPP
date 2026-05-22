@@ -47,6 +47,9 @@ export class UsersComponent implements OnInit {
   uploadCategory = 'General';
   selectedFile: File | null = null;
 
+  editingDoc: any = null;
+  editingFolder: any = null;
+
   ngOnInit() {}
 
 
@@ -189,7 +192,7 @@ login() {
   }
 
   // --- VAULT & FOLDERS ---
-  fetchVaultDocs() {
+ fetchVaultDocs() {
     const filter = this.selectedFolderId ? `&folderId=${this.selectedFolderId}` : '';
     const url = `http://localhost:3000/document?search=${this.searchText}${filter}`;
     this.http.get<any[]>(url).subscribe(d => {
@@ -198,29 +201,157 @@ login() {
     });
   }
 
-  createFolder() {
-    if (!this.newFolderName) return;
-    this.http.post<any>('http://localhost:3000/folder', { name: this.newFolderName }).subscribe(() => {
-      this.newFolderName = '';
-      setTimeout(() => this.refresh(), 300);
-    });
+  onFileSelected(event: any) { 
+    this.selectedFile = event.target.files[0]; 
   }
-
-  onFileSelected(event: any) { this.selectedFile = event.target.files[0]; }
 
   uploadDocument() {
-    if (!this.selectedFile || !this.uploadTitle) return;
+    if (!this.uploadTitle.trim()) {
+      alert("Please provide an explicit display name for your resource.");
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
     const fb = new FormData();
-    fb.append('file', this.selectedFile);
+    if (this.selectedFile) fb.append('file', this.selectedFile);
     fb.append('title', this.uploadTitle);
-    fb.append('folder_id', this.selectedFolderId);
-    fb.append('uploaded_by', this.currentUserId);
-    this.http.post<any>('http://localhost:3000/upload', fb).subscribe(() => {
-      this.uploadTitle = '';
-      setTimeout(() => this.refresh(), 400);
+    fb.append('folder_id', this.selectedFolderId || '');
+    fb.append('user_id', this.currentUserId);
+
+    this.http.post<any>('http://localhost:3000/upload', fb, { headers }).subscribe({
+      next: (res) => {
+        this.uploadTitle = '';
+        this.selectedFile = null;
+        this.fetchVaultDocs();
+        this.cdr.detectChanges();
+        alert("Document uploaded successfully!");
+      },
+      error: (err) => {
+        console.error(err);
+        alert("Upload failed.");
+      }
     });
   }
 
+  startDocEdit(doc: any) {
+    this.editingDoc = { ...doc };
+    this.cdr.detectChanges();
+  }
+
+  cancelDocEdit() {
+    this.editingDoc = null;
+    this.cdr.detectChanges();
+  }
+
+  saveDocUpdate() {
+    if (!this.editingDoc) return;
+    const targetFolder = (this.editingDoc.folder_id === 'null' || this.editingDoc.folder_id === '') ? null : this.editingDoc.folder_id;
+
+    this.http.put(`http://localhost:3000/documents/${this.editingDoc.id}`, {
+      folder_name: this.editingDoc.title,
+      folder_id: targetFolder,
+      user_id: this.currentUserId 
+    }).subscribe(() => {
+      this.editingDoc = null;
+      this.refresh();
+      this.cdr.detectChanges();
+    });
+  }
+
+  removeDocument(id: number) {
+    if (confirm("Permanently drop and delete this file asset from system server storage?")) {
+      this.http.delete(`http://localhost:3000/documents/${id}?user_id=${this.currentUserId}`).subscribe(() => {
+        this.fetchVaultDocs();
+        this.cdr.detectChanges();
+      });
+    }
+  }
+
+  downloadFile(id: number, filename: string) {
+    this.http.get(`http://localhost:3000/documents/download/${id}`, { responseType: 'blob' })
+      .subscribe((blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.cdr.detectChanges();
+      });
+  }
+
+  fetchFolders() {
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    this.http.get<any[]>('http://localhost:3000/folders', { headers }).subscribe({
+      next: (data) => {
+        this.folder = data;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error("Failed to fetch folders:", err);
+        alert("Error fetching folders: " + (err.error?.error || "Unauthorized"));
+      }
+    });
+  }
+
+  createFolder() {
+    if (!this.newFolderName || !this.newFolderName.trim()) {
+      alert("Please enter a folder name.");
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    const payload = {
+      folder_name: this.newFolderName.trim()
+    };
+
+    this.http.post<any>('http://localhost:3000/folders', payload, { headers }).subscribe({
+      next: (res) => {
+        this.newFolderName = ''; 
+        this.fetchFolders();   
+        this.cdr.detectChanges();
+        alert("Folder created successfully!");
+      },
+      error: (err) => {
+        console.error(err);
+        alert("Failed to create folder: " + (err.error?.message || err.error?.error || "Unauthorized or Server Error"));
+      }
+    });
+  }
+
+  startFolderRename(f: any) { 
+    this.editingFolder = { ...f }; 
+    this.cdr.detectChanges();
+  }
+
+  saveFolderRename() {
+    if (!this.editingFolder || !this.editingFolder.folder_name.trim()) return;
+    this.http.put(`http://localhost:3000/folders/${this.editingFolder.id}`, {
+      folder_name: this.editingFolder.folder_name,
+      user_id: this.currentUserId
+    }).subscribe(() => {
+      this.editingFolder = null;
+      this.fetchFolders();
+      this.cdr.detectChanges();
+    });
+  }
+
+  removeFolder(id: any) {
+    if (confirm("Delete this folder layout? Managed file rows inside will automatically default back to the open public view.")) {
+      this.http.delete(`http://localhost:3000/folders/${id}?user_id=${this.currentUserId}`).subscribe(() => {
+        this.fetchFolders();
+        this.cdr.detectChanges();
+      });
+    }
+  }
+
+  // LOGOUT and save to logs (logout-history)
   logout() { 
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };

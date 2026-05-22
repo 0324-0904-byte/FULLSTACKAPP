@@ -3,9 +3,8 @@ const router = express.Router();
 const mysql = require('mysql2');
 const config = require('../config/db.config');
 const verifyToken = require('../middleware/auth'); 
-const isAdmin = require('../middleware/role');
+const isAdmin = require('../middleware/role'); // Put role check back
 
-// Local connection using the clean config parameters
 const db = mysql.createConnection({
     host: config.DB_HOST,
     user: config.DB_USER,
@@ -13,43 +12,42 @@ const db = mysql.createConnection({
     database: config.DB_NAME
 });
 
-// Fetch All Folders (Protected)
+// Fetch All Folders (Protected - Viewable by all logged-in users)
 router.get('/folders', verifyToken, (req, res) => {
-    db.query("SELECT folder_id AS id, folder_name, managed_by FROM folder ORDER BY folder_name ASC", (err, result) => {
+    db.query("SELECT folder_id AS id, folder_name, user_id FROM folder ORDER BY folder_name ASC", (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(result);
     });
 });
 
-// Create Folder Directory (Protected)
-router.post('/folders', verifyToken, isAdmin, (req, res) => {
+// Create Folder Directory 
+router.post('/folders', [verifyToken, isAdmin], (req, res) => {
     const { folder_name } = req.body; 
-    const userId = req.user.id;      
+    const userId = req.user.id;
 
     if (!folder_name || !folder_name.trim()) {
         return res.status(400).json({ success: false, message: "Folder name required." });
     }
 
-    const sql = "INSERT INTO folder (folder_name) VALUES (?)";
-    db.query(sql, [folder_name], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+    const sql = "INSERT INTO folder (folder_name, user_id) VALUES (?, ?)";
+    db.query(sql, [folder_name, userId], (err, result) => {
+        if (err) return res.status(500).json({ success: false, error: err.message });
 
-        // Audit Trail Integration
         db.query("INSERT INTO logs (user_id, action) VALUES (?, ?)", 
             [userId, `Created folder directory entity: "${folder_name}"`]
         );
 
-        res.json({ success: true });
+        res.json({ success: true, message: "Folder created successfully!" });
     });
 });
 
-// Rename Folder Directory (Protected)
-router.put('/folders/:id', verifyToken, isAdmin, (req, res) => {
+// Rename Folder Directory 
+router.put('/folders/:id', [verifyToken, isAdmin], (req, res) => {
     const folderId = req.params.id;
     const { folder_name } = req.body;
     const userId = req.user.id; 
 
-    const sql = "UPDATE folder SET folder_name = ? WHERE id = ?";
+    const sql = "UPDATE folder SET folder_name = ? WHERE folder_id = ?";
     db.query(sql, [folder_name, folderId], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
 
@@ -61,15 +59,15 @@ router.put('/folders/:id', verifyToken, isAdmin, (req, res) => {
     });
 });
 
-// Drop Folder Directory Safely (Protected)
-router.delete('/folders/:id', verifyToken, isAdmin, (req, res) => {
+// Drop Folder Directory Safely 
+router.delete('/folders/:id', [verifyToken, isAdmin], (req, res) => {
     const folderId = req.params.id;
     const userId = req.user.id; 
 
     db.query("UPDATE document SET folder_id = NULL WHERE folder_id = ?", [folderId], (err) => {
         if (err) return res.status(500).json({ error: err.message });
 
-        db.query("DELETE FROM folder WHERE id = ?", [folderId], (err) => {
+        db.query("DELETE FROM folder WHERE folder_id = ?", [folderId], (err) => {
             if (err) return res.status(500).json({ error: err.message });
 
             db.query("INSERT INTO logs (user_id, action) VALUES (?, ?)", 
