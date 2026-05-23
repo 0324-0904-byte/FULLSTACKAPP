@@ -231,7 +231,7 @@ login() {
     if (this.selectedFile) fb.append('file', this.selectedFile);
     fb.append('title', this.uploadTitle);
     fb.append('folder_id', this.selectedFolderId || '');
-    fb.append('user_id', this.currentUserId);
+    fb.append('uploaded_by', this.currentUserId);
 
     this.http.post<any>('http://localhost:3000/upload', fb, { headers }).subscribe({
       next: (res) => {
@@ -254,28 +254,36 @@ login() {
   }
 
   cancelDocEdit() {
-    this.editingDoc = null;
-    this.cdr.detectChanges();
+      this.editingDoc = null;
+      this.cdr.detectChanges();
   }
 
   saveDocUpdate() {
-    if (!this.editingDoc) return;
-    const targetFolder = (this.editingDoc.folder_id === 'null' || this.editingDoc.folder_id === '') ? null : this.editingDoc.folder_id;
+      if (!this.editingDoc) return;
+      const targetFolder = (this.editingDoc.folder_id === 'null' || this.editingDoc.folder_id === '') ? null : this.editingDoc.folder_id;
 
-    this.http.put(`http://localhost:3000/documents/${this.editingDoc.id}`, {
-      folder_name: this.editingDoc.title,
-      folder_id: targetFolder,
-      user_id: this.currentUserId 
-    }).subscribe(() => {
-      this.editingDoc = null;
-      this.refresh();
-      this.cdr.detectChanges();
-    });
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      this.http.put(`http://localhost:3000/document/${this.editingDoc.id}`, {
+        title: this.editingDoc.title,
+        folder_id: targetFolder,
+        uploaded_by: this.currentUserId 
+      }, { headers }).subscribe(() => { 
+        this.editingDoc = null;
+        this.refresh();
+        this.cdr.detectChanges();
+        alert("Document updated successfully!");
+      });
   }
 
   removeDocument(id: number) {
-    if (confirm("Permanently drop and delete this file asset from system server storage?")) {
-      this.http.delete(`http://localhost:3000/documents/${id}?user_id=${this.currentUserId}`).subscribe(() => {
+    if (confirm("Permanently delete this file from system server storage?")) {
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      this.http.delete(`http://localhost:3000/document/${id}?uploaded_by=${this.currentUserId}`, { headers }).subscribe(() => {
+        alert("Document deleted successfully!");
         this.fetchVaultDocs();
         this.cdr.detectChanges();
       });
@@ -283,15 +291,21 @@ login() {
   }
 
   downloadFile(id: number, filename: string) {
-    this.http.get(`http://localhost:3000/documents/download/${id}`, { responseType: 'blob' })
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      this.http.get(`http://localhost:3000/document/download/${id}`, { 
+        responseType: 'blob',
+        headers: headers
+      })
       .subscribe((blob: Blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        this.cdr.detectChanges();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename; 
+          a.click();
+          window.URL.revokeObjectURL(url);
+          this.cdr.detectChanges();
       });
   }
 
@@ -343,16 +357,26 @@ login() {
     this.cdr.detectChanges();
   }
 
-  saveFolderRename() {
-    if (!this.editingFolder || !this.editingFolder.folder_name.trim()) return;
-    this.http.put(`http://localhost:3000/folders/${this.editingFolder.id}`, {
-      folder_name: this.editingFolder.folder_name,
-      user_id: this.currentUserId
-    }).subscribe(() => {
-      this.editingFolder = null;
-      this.fetchFolders();
+  cancelFolderRename() { 
+      this.editingFolder = null; 
       this.cdr.detectChanges();
-    });
+  }
+
+  saveFolderRename() {
+      if (!this.editingFolder || !this.editingFolder.folder_name.trim()) return;
+
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      this.http.put(`http://localhost:3000/folders/${this.editingFolder.id}`, {
+        folder_name: this.editingFolder.folder_name,
+        user_id: this.currentUserId
+      }, { headers }).subscribe(() => { 
+        alert("Folder renamed successfully!"); 
+        this.editingFolder = null;
+        this.fetchFolders();
+        this.cdr.detectChanges();
+      });
   }
 
   // --- MODIFIED DELETION LOGIC ---====================

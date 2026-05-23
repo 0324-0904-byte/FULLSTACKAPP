@@ -3,7 +3,7 @@ const router = express.Router();
 const mysql = require('mysql2');
 const config = require('../config/db.config');
 const verifyToken = require('../middleware/auth'); 
-const isAdmin = require('../middleware/role'); // Put role check back
+const isAdmin = require('../middleware/role'); 
 
 const db = mysql.createConnection({
     host: config.DB_HOST,
@@ -34,10 +34,13 @@ router.post('/folders', [verifyToken, isAdmin], (req, res) => {
         if (err) return res.status(500).json({ success: false, error: err.message });
 
         db.query("INSERT INTO logs (user_id, action) VALUES (?, ?)", 
-            [userId, `Created folder directory entity: "${folder_name}"`]
+            [userId, `Created folder directory entity: "${folder_name}"`],
+            (logErr) => {
+                if (logErr) console.error("Logging Error (Create Folder):", logErr.message);
+                
+                res.json({ success: true, message: "Folder created successfully!" });
+            }
         );
-
-        res.json({ success: true, message: "Folder created successfully!" });
     });
 });
 
@@ -45,51 +48,64 @@ router.post('/folders', [verifyToken, isAdmin], (req, res) => {
 router.put('/folders/:id', [verifyToken, isAdmin], (req, res) => {
     const folderId = req.params.id;
     const { folder_name } = req.body;
-    const userId = req.user.id; 
+    const userId = req.user ? req.user.id : req.body.user_id; 
 
     const sql = "UPDATE folder SET folder_name = ? WHERE folder_id = ?";
     db.query(sql, [folder_name, folderId], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) {
+            console.error("Folder Update Query Error:", err);
+            return res.status(500).json({ error: err.message });
+        }
 
         db.query("INSERT INTO logs (user_id, action) VALUES (?, ?)", 
-            [userId, `Renamed folder ID ${folderId} to "${folder_name}"`]
+            [userId, `Renamed folder ID ${folderId} to "${folder_name}"`], 
+            (logErr) => {
+                if (logErr) console.error("System logs auditing insertion note:", logErr.message);
+                
+                return res.json({ success: true, message: "Folder updated cleanly" });
+            }
         );
-
-        res.json({ success: true });
     });
 });
-//============================================================================
+
+
 // Drop Folder Directory Safely 
 router.delete('/folders/:id', [verifyToken, isAdmin], (req, res) => {
     const folderId = req.params.id;
     const userId = req.user.id; 
-    
-    // --- ADDED: Check for cascade parameter ---
     const cascade = req.query.cascade === 'true'; 
 
-    // --- ADDED: Conditional query logic ---
-    const docQuery = cascade 
-        ? "DELETE FROM document WHERE folder_id = ?" 
-        : "UPDATE document SET folder_id = NULL WHERE folder_id = ?";
+    db.query("SELECT folder_name FROM folder WHERE folder_id = ?", [folderId], (findErr, records) => {
+        if (findErr) return res.status(500).json({ error: findErr.message });
+        if (records.length === 0) return res.status(404).json({ error: "Folder not found" });
 
-    db.query(docQuery, [folderId], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
+        const targetedFolderName = records[0].folder_name;
 
-        db.query("DELETE FROM folder WHERE folder_id = ?", [folderId], (err) => {
+        const docQuery = cascade 
+            ? "DELETE FROM document WHERE folder_id = ?" 
+            : "UPDATE document SET folder_id = NULL WHERE folder_id = ?";
+
+        db.query(docQuery, [folderId], (err) => {
             if (err) return res.status(500).json({ error: err.message });
 
-            // --- ADDED: Dynamic log entry ---
-            const logAction = cascade 
-                ? `Deleted folder ID ${folderId} and all its documents` 
-                : `Deleted folder ID ${folderId}, documents moved to Global`;
+            db.query("DELETE FROM folder WHERE folder_id = ?", [folderId], (err) => {
+                if (err) return res.status(500).json({ error: err.message });
 
-            db.query("INSERT INTO logs (user_id, action) VALUES (?, ?)", 
-                [userId, logAction]
-            );
+                const logAction = cascade 
+                    ? `Deleted folder "${targetedFolderName}" (ID: ${folderId}) and permanently purged all its documents.` 
+                    : `Deleted folder "${targetedFolderName}" (ID: ${folderId}). Associated documents moved to Global directory space.`;
 
-            res.json({ success: true });
+                db.query("INSERT INTO logs (user_id, action) VALUES (?, ?)", 
+                    [userId, logAction],
+                    (logErr) => {
+                        if (logErr) console.error("Logging Error (Delete Folder):", logErr.message);
+                        
+                        res.json({ success: true, message: "Folder removed cleanly." });
+                    }
+                );
+            });
         });
     });
 });
-//=========================================================================
+
 module.exports = router;

@@ -71,7 +71,7 @@ router.put("/:id", [verifyToken, isAdmin], (req, res) => {
                 return res.status(500).json({ success: false, message: err.message });
             }
             
-            res.json({ success: true, message: "User details and status updated successfully" });
+            res.json({ success: true, message: "User details updated successfully" });
         });
     });
 });

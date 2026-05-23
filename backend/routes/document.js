@@ -25,18 +25,15 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// 1. Fetch & Filter Documents 
+// Fetch & Filter Documents 
 router.get('/document', (req, res) => {
     const { folderId, search } = req.query; 
-    
-    // NEW CODE 'd.description' included in SELECT===========
-    let sql = `SELECT d.id, d.name AS title, d.description, d.timestamp AS upload_date, 
+    let sql = `SELECT d.id, d.name AS title, d.file_path, d.timestamp AS upload_date, 
                       'General' AS category, f.folder_name, u.username AS uploader_name 
                FROM document d 
                LEFT JOIN folder f ON d.folder_id = f.folder_id 
                LEFT JOIN user u ON d.uploaded_by = u.id 
                WHERE 1=1`;
-    // ==========================================
     
     let params = [];
 
@@ -51,74 +48,79 @@ router.get('/document', (req, res) => {
     sql += " ORDER BY d.timestamp DESC";
 
     db.query(sql, params, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) {
+            console.error("Database Fetch Error:", err); 
+            return res.status(500).json({ error: err.message });
+        }
         res.json(results);
     });
 });
 
-// 2. Secure Upload Document ========================
+// UPLOAD DOCUMENT  
 router.post('/upload', upload.single('file'), verifyToken, (req, res) => {
     const { title, folder_id, uploaded_by } = req.body;
     const targetFolder = (folder_id && folder_id !== 'null' && folder_id !== '') ? folder_id : null;
     const fileNameString = req.file ? req.file.filename : title;
+    const timestamp = new Date(); 
+    
+    const userId = req.user ? req.user.id : (uploaded_by || null);
 
-    //NEW CODE FOR DOCU DESCRIPTION (TIMESTAMP)
-    const currentTime = new Date().toLocaleString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit',
-        hour12: true,
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
+    const sql = "INSERT INTO document (name, file_path, timestamp, uploaded_by, folder_id) VALUES (?, ?, ?, ?, ?)";
+    db.query(sql, [title, fileNameString, timestamp, userId, targetFolder], (err, result) => {
+        if (err) {
+            console.error("Database Error:", err); 
+            return res.status(500).json({ error: err.message });
+        }
+        // action added to logs
+        const logSql = "INSERT INTO logs (user_id, action) VALUES (?, ?)";
+        const logAction = `Uploaded document: "${title}"`;
+        db.query(logSql, [userId, logAction], (logErr) => {
+            if (logErr) console.error("Logging Error (Upload):", logErr.message);
+            
+            res.json({ success: true });
+        });
     });
-    const dynamicDescription = `Uploaded on ${currentTime}`;
-    //==================================================
-
-
-    // NEW CODE Changed static string query parameter to dynamic variable (?)========
-    const sql = "INSERT INTO document (name, description, uploaded_by, folder_id) VALUES (?, ?, ?, ?)";
-    db.query(sql, [fileNameString, dynamicDescription, uploaded_by || req.user.id, targetFolder], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true });
-    });
-    // ==========================================
 });
 
 
-// 3. Update Metadata (ADMIN ONLY) 
+// Update Metadata (name, folder) 
 router.put('/document/:id', [verifyToken, isAdmin], (req, res) => {
     const docId = req.params.id;
-    const { title, folder_id } = req.body;
+    const { title, folder_id, uploaded_by } = req.body; 
     const targetFolder = (folder_id === 'null' || !folder_id) ? null : folder_id;
+    const userId = req.user ? req.user.id : (uploaded_by || null);
 
     const sql = "UPDATE document SET name = ?, folder_id = ? WHERE id = ?";
     db.query(sql, [title, targetFolder, docId], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true, message: "Metadata updated successfully" });
+        if (err) {
+            console.error("Database Update Error:", err);
+            return res.status(500).json({ error: err.message });
+        }
+
+        // action added to logs
+        const logSql = "INSERT INTO logs (user_id, action) VALUES (?, ?)";
+        const logAction = `Updated metadata for document ID ${docId}. New title: "${title}"`;
+        db.query(logSql, [userId, logAction], (logErr) => {
+            if (logErr) console.error("Logging Error (Update):", logErr.message);
+            
+            res.json({ success: true, message: "Metadata updated successfully" });
+        });
     });
 });
 
+// Delete Document Asset 
 router.delete('/document/:id', [verifyToken, isAdmin], (req, res) => {
-    executeDeletion(req, res);
-});
-
-router.delete('/documents/:id', (req, res) => {
-    executeDeletion(req, res);
-});
-
-function executeDeletion(req, res) {
     const docId = req.params.id;
+    const userId = req.user ? req.user.id : null;
     
-    // Aligned: Safely query the document row by ID using your real schema columns
-    db.query("SELECT name FROM document WHERE id = ?", [docId], (err, records) => {
+    db.query("SELECT name, file_path FROM document WHERE id = ?", [docId], (err, records) => {
         if (err) return res.status(500).json({ error: err.message });
-        if (records.length === 0) return res.status(404).json({ error: "Document asset not found" });
+        if (records.length === 0) return res.status(404).json({ error: "Document not found" });
 
-        const filename = records[0].name;
+        const docTitle = records[0].name;
+        const filename = records[0].file_path;
         const filepath = path.join(uploadDir, filename);
 
-        // Safely clear out the actual asset file from local disk space storage
         if (filename && fs.existsSync(filepath)) {
             try {
                 fs.unlinkSync(filepath);
@@ -127,25 +129,49 @@ function executeDeletion(req, res) {
             }
         }
 
-        // Wipe out the relational table row row directly from the database schema
         db.query("DELETE FROM document WHERE id = ?", [docId], (err) => {
             if (err) return res.status(500).json({ error: err.message });
-            res.json({ success: true, message: "Asset purged cleanly" });
+            
+            // action added to logs
+            const logSql = "INSERT INTO logs (user_id, action) VALUES (?, ?)";
+            const logAction = `Deleted document asset: "${docTitle}" (ID: ${docId})`;
+            db.query(logSql, [userId, logAction], (logErr) => {
+                if (logErr) console.error("Logging Error (Delete):", logErr.message);
+                
+                res.json({ success: true, message: "File Deleted Successfully." });
+            });
         });
     });
-}
+});
 
 
-// 5. Secure Asset Download Pipeline 
+//  Secure Asset Download Pipeline 
 router.get('/document/download/:id', verifyToken, (req, res) => {
     const docId = req.params.id;
+    const userId = req.user ? req.user.id : null;
 
-    db.query("SELECT name FROM document WHERE id = ?", [docId], (err, results) => {
+    db.query("SELECT name, file_path FROM document WHERE id = ?", [docId], (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
         if (results.length === 0) return res.status(404).json({ error: "File reference not found" });
 
-        const filename = results[0].name;
-        res.download(path.join(uploadDir, filename), filename);
+        const systemFilename = results[0].file_path;
+        const userDisplayTitle = results[0].name;
+
+        res.download(path.join(uploadDir, systemFilename), userDisplayTitle, (downloadErr) => {
+            if (downloadErr) {
+                console.error("Physical download transmission error:", downloadErr);
+                if (!res.headersSent) {
+                    res.status(404).json({ error: "Physical asset missing from server storage disk room" });
+                }
+            } else {
+                // action added to logs
+                const logSql = "INSERT INTO logs (user_id, action) VALUES (?, ?)";
+                const logAction = `Downloaded document: "${userDisplayTitle}" (ID: ${docId})`;
+                db.query(logSql, [userId, logAction], (logErr) => {
+                    if (logErr) console.error("Logging Error (Download):", logErr.message);
+                });
+            }
+        });
     });
 });
 

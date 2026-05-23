@@ -125,7 +125,9 @@
                     @else { <select [(ngModel)]="editingUser.role" style="padding: 5px;"><option value="user">User</option><option value="admin">Admin</option></select> }
                   </td>
                   <td style="padding: 10px;"><select [(ngModel)]="editingUser.status" style="padding: 5px;"><option value="active">Active</option><option value="deactivated">Deactivated</option></select></td>
-                  <td style="padding: 10px; text-align: right;"><button (click)="saveUpdate()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-right: 5px; font-weight: bold;">SAVE</button><button (click)="cancelEdit()" style="background: #64748b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">CANCEL</button></td>
+                  <td style="padding: 10px; text-align: right;">
+                    <button (click)="saveUpdate()" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-right: 5px; font-weight: bold;">SAVE</button>
+                    <button (click)="cancelEdit()" style="background: #64748b; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">CANCEL</button></td>
                 } @else {
                   <td style="padding: 15px 20px; font-weight: 600;">{{ u.username }}</td>
                   <td style="padding: 15px 20px; color: #64748b;">{{ u.role }}</td>
@@ -172,7 +174,7 @@
                 <span style="font-size: 13px; font-weight: bold; color: #1e3a8a;">Rename Folder:</span>
                 <input [(ngModel)]="editingFolder.folder_name" style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; width: 200px;">
                 <button (click)="saveFolderRename()" style="background: #10b981; color: white; padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">SAVE</button>
-                <button (click)="editingFolder = null" style="background: #64748b; color: white; padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">CANCEL</button>
+                <button (click)="cancelFolderRename()" style="background: #64748b; color: white; padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">CANCEL</button>
               </div>
             }
           </div>
@@ -237,12 +239,19 @@
         @if (activeTab === 'logs' && role === 'admin') {
           <h3 style="color: #1e3a8a; margin-bottom: 15px;">System Activity Logs</h3>
           <div style="border: 1px solid #e2e8f0; border-radius: 8px; max-height: 400px; overflow-y: auto; background: white;">
+            
             @for(log of logs; track log.id) {
-              <div style="padding: 15px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; font-size: 13px;">
-                <div style="display: flex; flex-direction: column;"><span style="font-weight: 600;">{{ log.user_name || 'System' }}</span><span>{{ log.action }}</span></div>
+              <div style="padding: 15px 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                <div style="display: flex; flex-direction: column;">
+                  <span style="font-weight: 600; color: #334155;">{{ log.user_name || 'System / Guest' }}</span>
+                  <span style="color: #475569; margin-top: 2px;">{{ log.action }}</span>
+                </div>
                 <span style="color: #94a3b8; font-size: 11px;">{{ log.action_time | date:'medium' }}</span>
               </div>
+            } @empty {
+              <div style="padding: 30px; text-align: center; color: #94a3b8;">No system activities logged in this audit interval window.</div>
             }
+
           </div>
         }
       </div>
