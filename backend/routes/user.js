@@ -21,8 +21,6 @@ router.get("/", [verifyToken, isAdmin], (req, res) => {
     });
 });
 
-
-
 // PUT: Update User (name, role, status, soft-delete)
 router.put("/:id", [verifyToken, isAdmin], (req, res) => {
     const userId = req.params.id;
@@ -45,10 +43,20 @@ router.put("/:id", [verifyToken, isAdmin], (req, res) => {
 
         const currentUser = rows[0];
 
-        // don't allow admin deactivation
+        // Define these variables here so they are available for all checks below
         const isCurrentAdmin = currentUser.role === 'admin';
         const isNewAdmin = role === 'admin';
-        
+
+        //NEW CODE FOR BLOCKING ROLE CHANGE FOR ADMIN============
+        if (isCurrentAdmin && role && role !== 'admin') {
+            return res.status(400).json({
+                success: false,
+                message: "Protected action: Admin privileges are permanent and cannot be revoked."
+            });
+        }
+        // ==========================================
+
+        // don't allow admin deactivation
         if ((isCurrentAdmin || isNewAdmin) && status === 'deactivated') {
             return res.status(400).json({ 
                 success: false, 

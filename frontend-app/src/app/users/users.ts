@@ -49,6 +49,9 @@ export class UsersComponent implements OnInit {
 
   editingDoc: any = null;
   editingFolder: any = null;
+  
+  // --- Deletion Choice UI State ---
+  folderToDelete: any = null;
 
   ngOnInit() {}
 
@@ -202,7 +205,7 @@ login() {
   }
 
   // --- VAULT & FOLDERS ---
- fetchVaultDocs() {
+  fetchVaultDocs() {
     const filter = this.selectedFolderId ? `&folderId=${this.selectedFolderId}` : '';
     const url = `http://localhost:3000/document?search=${this.searchText}${filter}`;
     this.http.get<any[]>(url).subscribe(d => {
@@ -352,15 +355,34 @@ login() {
     });
   }
 
-  removeFolder(id: any) {
-    if (confirm("Delete this folder layout? Managed file rows inside will automatically default back to the open public view.")) {
-      this.http.delete(`http://localhost:3000/folders/${id}?user_id=${this.currentUserId}`).subscribe(() => {
-        this.fetchFolders();
-        this.cdr.detectChanges();
-      });
-    }
+  // --- MODIFIED DELETION LOGIC ---====================
+  confirmDelete(folder: any) {
+    this.folderToDelete = folder;
   }
 
+  performDelete(isCascade: boolean) {
+    if (!this.folderToDelete) return;
+    const id = this.folderToDelete.id;
+    
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    this.http.delete(`http://localhost:3000/folders/${id}?cascade=${isCascade}`, { headers }).subscribe({
+      next: () => {
+        this.folderToDelete = null;
+        this.fetchFolders();
+        this.fetchVaultDocs();
+        this.cdr.detectChanges();
+        alert(isCascade ? "Folder and all documents deleted." : "Folder deleted, documents moved to Global.");
+      },
+      error: (err) => {
+        this.folderToDelete = null;
+        console.error("Delete failed:", err);
+        alert("Failed to delete folder: " + (err.error?.message || "Unauthorized"));
+      }
+    });
+  }
+//============================================
   // LOGOUT and save to logs (logout-history)
   logout() { 
     const token = localStorage.getItem('token');

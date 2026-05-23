@@ -29,12 +29,15 @@ const upload = multer({ storage: storage });
 router.get('/document', (req, res) => {
     const { folderId, search } = req.query; 
     
-    let sql = `SELECT d.id, d.name AS title, d.timestamp AS upload_date, 
+    // NEW CODE 'd.description' included in SELECT===========
+    let sql = `SELECT d.id, d.name AS title, d.description, d.timestamp AS upload_date, 
                       'General' AS category, f.folder_name, u.username AS uploader_name 
                FROM document d 
                LEFT JOIN folder f ON d.folder_id = f.folder_id 
                LEFT JOIN user u ON d.uploaded_by = u.id 
                WHERE 1=1`;
+    // ==========================================
+    
     let params = [];
 
     if (folderId && folderId !== 'null' && folderId !== '') {
@@ -53,17 +56,33 @@ router.get('/document', (req, res) => {
     });
 });
 
-// 2. Secure Upload Document 
+// 2. Secure Upload Document ========================
 router.post('/upload', upload.single('file'), verifyToken, (req, res) => {
     const { title, folder_id, uploaded_by } = req.body;
     const targetFolder = (folder_id && folder_id !== 'null' && folder_id !== '') ? folder_id : null;
     const fileNameString = req.file ? req.file.filename : title;
 
-    const sql = "INSERT INTO document (name, description, uploaded_by, folder_id) VALUES (?, 'Uploaded via system vault', ?, ?)";
-    db.query(sql, [fileNameString, uploaded_by || req.user.id, targetFolder], (err) => {
+    //NEW CODE FOR DOCU DESCRIPTION (TIMESTAMP)
+    const currentTime = new Date().toLocaleString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true,
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+    });
+    const dynamicDescription = `Uploaded on ${currentTime}`;
+    //==================================================
+
+
+    // NEW CODE Changed static string query parameter to dynamic variable (?)========
+    const sql = "INSERT INTO document (name, description, uploaded_by, folder_id) VALUES (?, ?, ?, ?)";
+    db.query(sql, [fileNameString, dynamicDescription, uploaded_by || req.user.id, targetFolder], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true });
     });
+    // ==========================================
 });
 
 

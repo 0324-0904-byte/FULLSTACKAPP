@@ -58,25 +58,38 @@ router.put('/folders/:id', [verifyToken, isAdmin], (req, res) => {
         res.json({ success: true });
     });
 });
-
+//============================================================================
 // Drop Folder Directory Safely 
 router.delete('/folders/:id', [verifyToken, isAdmin], (req, res) => {
     const folderId = req.params.id;
     const userId = req.user.id; 
+    
+    // --- ADDED: Check for cascade parameter ---
+    const cascade = req.query.cascade === 'true'; 
 
-    db.query("UPDATE document SET folder_id = NULL WHERE folder_id = ?", [folderId], (err) => {
+    // --- ADDED: Conditional query logic ---
+    const docQuery = cascade 
+        ? "DELETE FROM document WHERE folder_id = ?" 
+        : "UPDATE document SET folder_id = NULL WHERE folder_id = ?";
+
+    db.query(docQuery, [folderId], (err) => {
         if (err) return res.status(500).json({ error: err.message });
 
         db.query("DELETE FROM folder WHERE folder_id = ?", [folderId], (err) => {
             if (err) return res.status(500).json({ error: err.message });
 
+            // --- ADDED: Dynamic log entry ---
+            const logAction = cascade 
+                ? `Deleted folder ID ${folderId} and all its documents` 
+                : `Deleted folder ID ${folderId}, documents moved to Global`;
+
             db.query("INSERT INTO logs (user_id, action) VALUES (?, ?)", 
-                [userId, `Deleted folder directory reference ID: ${folderId}`]
+                [userId, logAction]
             );
 
             res.json({ success: true });
         });
     });
 });
-
+//=========================================================================
 module.exports = router;
