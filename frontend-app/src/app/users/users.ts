@@ -36,6 +36,7 @@ export class UsersComponent implements OnInit {
   newUserName = '';
   newUserRole = 'user';
   newUserPass = '';
+  userEmail = '';
 
   // --- Edit State ---
   editingUser: any = null;
