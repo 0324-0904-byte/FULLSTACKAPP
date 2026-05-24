@@ -25,13 +25,15 @@ const userRoutes = require('./routes/user');
 const folderRoutes = require('./routes/folder');
 const documentRoutes = require('./routes/document');
 const logRoutes = require('./routes/log');
+const profileRoutes = require('./routes/profile');
 
 // --- 4. MODULAR ROUTE MOUNTING ---
 app.use('/auth', authRoutes);   
 app.use('/users', userRoutes);  
 app.use('/', folderRoutes);     
 app.use('/', documentRoutes);   
-app.use('/', logRoutes);        
+app.use('/', logRoutes);    
+app.use('/profile', profileRoutes);    
 
 // --- 5. DATABASE CONNECTION ---
 const db = mysql.createConnection({

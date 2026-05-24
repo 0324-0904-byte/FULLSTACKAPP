@@ -38,6 +38,22 @@ export class UsersComponent implements OnInit {
   newUserPass = '';
   userEmail = '';
 
+  // --- PROFILE FORM STATE ---
+  isEditingProfile = false;
+  profileData = {
+    username: '',
+    email: '',
+    bio: '',
+    password: ''
+  };
+
+  profileBackupData = {
+    username: '',
+    email: '',
+    bio: '',
+    password: ''
+  };
+
   // --- Edit State ---
   editingUser: any = null;
 
@@ -64,6 +80,14 @@ login() {
       this.role = res.user.role;
       this.currentUserId = res.user.id;
       this.activeLogId = res.activeLogId;
+      this.activeTab = 'documents';
+
+        // POPULATE PROFILE ENGINE DATA FROM LOGGED IN USER
+        this.profileData.username = res.user.username || res.user.name || this.loginName;
+        this.profileData.email = res.user.email || '';
+        this.profileData.bio = res.user.bio || '';
+        this.profileData.password = ''; // 
+        this.isEditingProfile = false;
 
       if (res.token) {
         localStorage.setItem('token', res.token);
@@ -407,6 +431,60 @@ login() {
       }
     });
   }
+  
+
+  toggleProfileEdit(editState: boolean) {
+    this.isEditingProfile = editState;
+    if (editState) {
+      // Gumawa ng backup bago mag-edit para may babalikan kapag nag-cancel
+      this.profileBackupData = { ...this.profileData };
+    } else {
+      // Kapag nag-cancel, ibalik ang dating data at linisin ang password placeholder
+      this.profileData = { ...this.profileBackupData };
+      this.profileData.password = ''; // Mas mainam na walang laman kesa bullet dots kapag reredi para sa edit uli
+    }
+    this.cdr.detectChanges();
+  }
+
+
+    // ---  3. CORE PROFILE SYNC ENGINE  ---
+  updateProfile() {
+    if (!this.currentUserId) {
+      alert("Error: Critical session expiration. Please re-login.");
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
+
+    const payload = {
+      userId: this.currentUserId,
+      username: this.profileData.username,
+      email: this.profileData.email,
+      bio: this.profileData.bio,
+      password: this.profileData.password
+    };
+
+    console.log("Transmitting profile payload to API:", payload);
+
+    this.http.put<any>('http://localhost:3000/profile/update-profile', payload, { headers }).subscribe({
+      next: (res) => {
+        if (res.success) {
+          alert("Profile and data fields locked into DB successfully!");
+          this.isEditingProfile = false; // Babalik sa View Mode pagkatapos ng successful save
+          this.loginName = this.profileData.username; // I-sync ang welcome message header
+          this.refresh();
+        } else {
+          alert("Database rejection: " + res.message);
+        }
+      },
+      error: (err) => {
+        console.error("HTTP Pipe Error during profile patch:", err);
+        alert(err.error?.message || "Network communication system failure.");
+      }
+    });
+  }
+
 //============================================
   // LOGOUT and save to logs (logout-history)
   logout() { 
