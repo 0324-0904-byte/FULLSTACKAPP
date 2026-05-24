@@ -66,11 +66,18 @@ router.post("/login", (req, res) => {
             }
 
             // Return activeLogId so users.ts can save it for logout tracking
+            // ADDED: Fallback mapping parameters para sa profile binding fields
             res.json({
                 success: true,
                 token: token,
                 activeLogId: logResult.insertId, 
-                user: { id: user.id, name: user.username, role: user.role }
+                user: { 
+                    id: user.id, 
+                    name: user.username, 
+                    role: user.role,
+                    email: user.email || '',
+                    bio: user.bio || ''
+                }
             });
         });
     });

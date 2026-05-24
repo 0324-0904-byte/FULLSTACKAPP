@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http'; 
 
 @Component({
   selector: 'app-users',
@@ -38,6 +38,9 @@ export class UsersComponent implements OnInit {
   newUserPass = '';
   userEmail = '';
 
+  // --- PASSWORD VALIDATION ---
+  passwordError = '';
+
   // --- PROFILE FORM STATE ---
   isEditingProfile = false;
   profileData = {
@@ -58,7 +61,7 @@ export class UsersComponent implements OnInit {
   editingUser: any = null;
 
   // --- Real Stats Feature ---
-  dbLatency: number = 0; // Tracking real connection speed
+  dbLatency: number = 0;
 
   uploadTitle = '';
   uploadCategory = 'General';
@@ -72,105 +75,135 @@ export class UsersComponent implements OnInit {
 
   ngOnInit() {}
 
+  login() {
+    this.http.post<any>('http://localhost:3000/auth/login', {
+      name: this.loginName,
+      password: this.loginPass
+    }).subscribe({
+      next: (res: any) => { 
+        if (res.success) {
+          this.isLoggedIn = true;
+          this.role = res.user.role;
+          this.currentUserId = res.user.id;
+          this.activeLogId = res.activeLogId;
+          this.activeTab = 'documents';
 
-login() {
-  this.http.post<any>('http://localhost:3000/auth/login', { name: this.loginName, password: this.loginPass }).subscribe(res => {
-     if (res.success) {
-      this.isLoggedIn = true;
-      this.role = res.user.role;
-      this.currentUserId = res.user.id;
-      this.activeLogId = res.activeLogId;
-      this.activeTab = 'documents';
+          this.profileData.username = res.user.username || res.user.name || this.loginName;
+          this.profileData.email = res.user.email || '';
+          this.profileData.bio = res.user.bio || '';
+          this.profileData.password = '';
+          this.isEditingProfile = false;
 
-        // POPULATE PROFILE ENGINE DATA FROM LOGGED IN USER
-        this.profileData.username = res.user.username || res.user.name || this.loginName;
-        this.profileData.email = res.user.email || '';
-        this.profileData.bio = res.user.bio || '';
-        this.profileData.password = ''; // 
-        this.isEditingProfile = false;
+          if (res.token) {
+            localStorage.setItem('token', res.token);
+          }
 
-      if (res.token) {
-        localStorage.setItem('token', res.token);
+          console.log("hi", res);
+
+          if (this.role === 'admin') {
+            this.activeTab = 'dashboard';
+          } else {
+            this.activeTab = 'vault';
+          }
+
+          this.refresh();
+
+        } else {
+          alert(res.message);
+        }
+      },
+      error: (err: any) => { 
+        console.error("Login endpoint failed:", err);
+        alert(`Login Connection Error (${err.status}): ${err.message || 'Cannot connect to backend server.'}`);
       }
-      console.log("hi", res)
+    });
+  }
 
-      // DYNAMIC REDIRECT BASED ON THE RESPONSED ROLE
-      if (this.role === 'admin') {
-        this.activeTab = 'dashboard';
-      } else {
-        this.activeTab = 'vault'; // Send regular users straight to the Documents vault
-      }
-
-      // LOAD ANALYTICS DATA IMMEDIATELY ON LOGIN
-      this.refresh();
-    } else alert(res.message);
-  });
-}
-
-
-  // REAL-TIME SYNC ENGINE
   refresh() {
-    const startTime = Date.now(); // Start timer for real latency
-
+    const startTime = Date.now();
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    // ADMIN-ONLY DATA FETCHING
+    this.http.get<any>('http://localhost:3000/users/profile/me', { headers }).subscribe({
+      next: (res: any) => { 
+        if (res.success && res.user) {
+          this.profileData.username = res.user.username || this.loginName;
+          this.profileData.email = res.user.email || '';
+          this.profileData.bio = res.user.bio || '';
+          this.profileData.password = '';
+          this.profileBackupData = { ...this.profileData };
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err: any) => console.error("Fetch current profile status failed:", err) 
+    });
+
     if (this.role === 'admin') {
-      this.http.get<any[]>('http://localhost:3000/users/', { headers }).subscribe(d => {
-        this.user = [...d];
-        
-        // Calculate Real Latency based on DB response time
-        this.dbLatency = Date.now() - startTime;
-        
-        this.cdr.detectChanges(); 
+      this.http.get<any[]>('http://localhost:3000/users/', { headers }).subscribe({
+        next: (d: any[]) => { 
+          this.user = [...d];
+          this.dbLatency = Date.now() - startTime;
+          this.cdr.detectChanges();
+        },
+        error: (err: any) => console.error("Admin fetch users failed:", err) 
       });
 
-      this.http.get<any[]>('http://localhost:3000/logs', { headers }).subscribe(d => {
-        this.logs = [...d];
-        this.cdr.detectChanges();
+      this.http.get<any[]>('http://localhost:3000/logs', { headers }).subscribe({
+        next: (d: any[]) => { 
+          this.logs = [...d];
+          this.cdr.detectChanges();
+        },
+        error: (err: any) => console.error("Admin fetch logs failed:", err) 
       });
     } else {
-      // Regular users don't fetch user/log lists, but we can still show a fast UI latency baseline
       this.dbLatency = Date.now() - startTime;
     }
 
-    // 🔓 GLOBAL DATA FETCHING (Everyone has access to these)
-    this.http.get<any[]>('http://localhost:3000/folders', { headers }).subscribe(d => {
-      this.folder = [...d];
-      this.cdr.detectChanges();
+    this.http.get<any[]>('http://localhost:3000/folders', { headers }).subscribe({
+      next: (d: any[]) => { 
+        this.folder = [...d];
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => console.error("Fetch folders failed:", err) 
     });
 
     this.fetchVaultDocs();
   }
 
-
-  // --- USER MANAGEMENT (UPDATED WITH DIALOGUES) ---
   addUser() {
-    if (!this.newUserName || !this.newUserPass) return alert("Fill Name and Password");
-    const payload = { name: this.newUserName, role: this.newUserRole, password: this.newUserPass };
+    if (!this.newUserPass || this.newUserPass.length < 8) {
+      alert("Password must be at least 8 characters long.");
+      return;
+    }
+
+    if (!this.newUserName || !this.newUserPass) {
+      return alert("Fill Name and Password");
+    }
+
+    const payload = {
+      name: this.newUserName,
+      role: this.newUserRole,
+      password: this.newUserPass
+    };
     
     this.http.post<any>('http://localhost:3000/auth/register', payload).subscribe({
-      next: (res) => {
-        // SUCCESS DIALOGUE
+      next: (res: any) => { 
         alert("Successfully created account");
         this.newUserName = '';
         this.newUserPass = '';
         this.refresh();
       },
-      error: (err) => {
-        // ERROR DIALOGUES
+      error: (err: any) => { 
         if (err.status === 400) {
           alert("User is already registered");
         } else {
-          alert("Server Error: Could not create account." + err.status);
+          alert("Server Error: Could not create account. Status: " + err.status);
         }
         this.refresh();
       }
     });
   }
 
-  // --- EDITING LOGIC (REINFORCED SAVE) ---
   startEdit(user: any) {
     this.editingUser = { ...user };
     this.cdr.detectChanges();
@@ -180,7 +213,6 @@ login() {
     this.editingUser = null;
     this.cdr.detectChanges();
   }
-
 
   saveUpdate() {
     if (!this.editingUser || !this.editingUser.id) {
@@ -194,21 +226,25 @@ login() {
     const updatePayload = {
       username: this.editingUser.username,
       role: this.editingUser.role,
-      status: this.editingUser.status 
+      status: this.editingUser.status
     };
 
-    this.http.put<any>(`http://localhost:3000/users/${this.editingUser.id}`, updatePayload, { headers }).subscribe({
-      next: (res) => {
+    this.http.put<any>(
+      `http://localhost:3000/users/${this.editingUser.id}`,
+      updatePayload,
+      { headers }
+    ).subscribe({
+      next: (res: any) => { 
         if (res.success) {
-          this.editingUser = null; 
-          this.refresh(); 
+          this.editingUser = null;
+          this.refresh();
           alert("Update Success!");
         } else {
           alert("Update failed: " + res.message);
         }
       },
-      error: (err) => {
-        alert("Communication Error: " + (err.error?.message || "Could not save."));
+      error: (err: any) => { 
+        alert("Communication Error: " + (err.error?.message || `Could not save. Status: ${err.status}`));
       }
     });
   }
@@ -219,28 +255,43 @@ login() {
     
     const nextStatus = currentStatus === 'active' ? 'deactivated' : 'active';
 
-    this.http.put<any>(`http://localhost:3000/users/status/${userId}`, { status: nextStatus }, { headers }).subscribe({
-      next: (res) => {
-        this.refresh(); 
+    this.http.put<any>(
+      `http://localhost:3000/users/status/${userId}`,
+      { status: nextStatus },
+      { headers }
+    ).subscribe({
+      next: (res: any) => { 
+        this.refresh();
       },
-      error: (err) => {
-        alert(`Could not change user status.`);
+      error: (err: any) => { 
+        alert(`Could not change user status. Status: ${err.status}`);
       }
     });
   }
 
-  // --- VAULT & FOLDERS ---
   fetchVaultDocs() {
     const filter = this.selectedFolderId ? `&folderId=${this.selectedFolderId}` : '';
     const url = `http://localhost:3000/document?search=${this.searchText}${filter}`;
-    this.http.get<any[]>(url).subscribe(d => {
-      this.document = [...d];
-      this.cdr.detectChanges();
+    const token = localStorage.getItem('token');
+    
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    this.http.get<any[]>(url, { headers }).subscribe({
+      next: (d: any[]) => { 
+        this.document = [...d];
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => { 
+        console.error("Fetch documents failed:", err);
+      }
     });
   }
 
-  onFileSelected(event: any) { 
-    this.selectedFile = event.target.files[0]; 
+  onFileSelected(event: any) {
+    this.selectedFile = event.target.files[0];
   }
 
   uploadDocument() {
@@ -251,24 +302,31 @@ login() {
 
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
-
     const fb = new FormData();
-    if (this.selectedFile) fb.append('file', this.selectedFile);
+
+    if (this.selectedFile) {
+      fb.append('file', this.selectedFile);
+    }
+
     fb.append('title', this.uploadTitle);
     fb.append('folder_id', this.selectedFolderId || '');
     fb.append('uploaded_by', this.currentUserId);
 
-    this.http.post<any>('http://localhost:3000/upload', fb, { headers }).subscribe({
-      next: (res) => {
+    this.http.post<any>(
+      'http://localhost:3000/upload',
+      fb,
+      { headers }
+    ).subscribe({
+      next: (res: any) => { 
         this.uploadTitle = '';
         this.selectedFile = null;
         this.fetchVaultDocs();
         this.cdr.detectChanges();
         alert("Document uploaded successfully!");
       },
-      error: (err) => {
+      error: (err: any) => { 
         console.error(err);
-        alert("Upload failed.");
+        alert(`Upload failed. Server responded with status: ${err.status}`);
       }
     });
   }
@@ -279,73 +337,103 @@ login() {
   }
 
   cancelDocEdit() {
-      this.editingDoc = null;
-      this.cdr.detectChanges();
+    this.editingDoc = null;
+    this.cdr.detectChanges();
   }
 
   saveDocUpdate() {
-      if (!this.editingDoc) return;
-      const targetFolder = (this.editingDoc.folder_id === 'null' || this.editingDoc.folder_id === '') ? null : this.editingDoc.folder_id;
+    if (!this.editingDoc) return;
 
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
+    const targetFolder = (this.editingDoc.folder_id === 'null' || this.editingDoc.folder_id === '') ? null : this.editingDoc.folder_id;
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` }; // FIXED: Added Auth Header
 
-      this.http.put(`http://localhost:3000/document/${this.editingDoc.id}`, {
+    this.http.put(
+      `http://localhost:3000/document/${this.editingDoc.id}`,
+      {
         title: this.editingDoc.title,
         folder_id: targetFolder,
-        uploaded_by: this.currentUserId 
-      }, { headers }).subscribe(() => { 
+        uploaded_by: this.currentUserId
+      },
+      { headers }
+    ).subscribe({
+      next: () => {
         this.editingDoc = null;
         this.refresh();
         this.cdr.detectChanges();
         alert("Document updated successfully!");
-      });
+      },
+      error: (err: any) => { 
+        console.error(err);
+        alert(`Failed to update document. Status: ${err.status}`);
+      }
+    });
   }
 
   removeDocument(id: number) {
     if (confirm("Permanently delete this file from system server storage?")) {
       const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
+      const headers = { 'Authorization': `Bearer ${token}` }; // FIXED: Added Auth Header
 
-      this.http.delete(`http://localhost:3000/document/${id}?uploaded_by=${this.currentUserId}`, { headers }).subscribe(() => {
-        alert("Document deleted successfully!");
-        this.fetchVaultDocs();
-        this.cdr.detectChanges();
+      this.http.delete(
+        `http://localhost:3000/document/${id}?uploaded_by=${this.currentUserId}`,
+        { headers }
+      ).subscribe({
+        next: () => {
+          alert("Document deleted successfully!");
+          this.fetchVaultDocs();
+          this.cdr.detectChanges();
+        },
+        error: (err: any) => { 
+          console.error(err);
+          alert(`Failed to delete document. Status: ${err.status}`);
+        }
       });
     }
   }
 
   downloadFile(id: number, filename: string) {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` }; // FIXED: Added Auth Header
 
-      this.http.get(`http://localhost:3000/document/download/${id}`, { 
+    this.http.get(
+      `http://localhost:3000/document/download/${id}`,
+      {
         responseType: 'blob',
         headers: headers
-      })
-      .subscribe((blob: Blob) => {
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = filename; 
-          a.click();
-          window.URL.revokeObjectURL(url);
-          this.cdr.detectChanges();
-      });
+      }
+    ).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => { 
+        console.error(err);
+        alert(`Download failed. Status: ${err.status}`);
+      }
+    });
   }
 
   fetchFolders() {
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    this.http.get<any[]>('http://localhost:3000/folders', { headers }).subscribe({
-      next: (data) => {
+    this.http.get<any[]>(
+      'http://localhost:3000/folders',
+      { headers }
+    ).subscribe({
+      next: (data: any[]) => { 
         this.folder = data;
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: any) => { 
         console.error("Failed to fetch folders:", err);
-        alert("Error fetching folders: " + (err.error?.error || "Unauthorized"));
+        alert("Error fetching folders: " + (err.error?.error || `Unauthorized or Status ${err.status}`));
       }
     });
   }
@@ -358,99 +446,120 @@ login() {
 
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
+    const payload = { folder_name: this.newFolderName.trim() };
 
-    const payload = {
-      folder_name: this.newFolderName.trim()
-    };
-
-    this.http.post<any>('http://localhost:3000/folders', payload, { headers }).subscribe({
-      next: (res) => {
-        this.newFolderName = ''; 
-        this.fetchFolders();   
+    this.http.post<any>(
+      'http://localhost:3000/folders',
+      payload,
+      { headers }
+    ).subscribe({
+      next: (res: any) => { 
+        this.newFolderName = '';
+        this.fetchFolders();
         this.cdr.detectChanges();
         alert("Folder created successfully!");
       },
-      error: (err) => {
+      error: (err: any) => { 
         console.error(err);
-        alert("Failed to create folder: " + (err.error?.message || err.error?.error || "Unauthorized or Server Error"));
+        alert("Failed to create folder: " + (err.error?.message || err.error?.error || `Status: ${err.status}`));
       }
     });
   }
 
-  startFolderRename(f: any) { 
-    this.editingFolder = { ...f }; 
+  startFolderRename(f: any) {
+    this.editingFolder = { ...f };
     this.cdr.detectChanges();
   }
 
-  cancelFolderRename() { 
-      this.editingFolder = null; 
-      this.cdr.detectChanges();
+  cancelFolderRename() {
+    this.editingFolder = null;
+    this.cdr.detectChanges();
   }
 
   saveFolderRename() {
-      if (!this.editingFolder || !this.editingFolder.folder_name.trim()) return;
+    if (!this.editingFolder || !this.editingFolder.folder_name.trim()) return;
 
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
 
-      this.http.put(`http://localhost:3000/folders/${this.editingFolder.id}`, {
+    this.http.put(
+      `http://localhost:3000/folders/${this.editingFolder.id}`,
+      {
         folder_name: this.editingFolder.folder_name,
         user_id: this.currentUserId
-      }, { headers }).subscribe(() => { 
-        alert("Folder renamed successfully!"); 
+      },
+      { headers }
+    ).subscribe({
+      next: () => {
+        alert("Folder renamed successfully!");
         this.editingFolder = null;
         this.fetchFolders();
         this.cdr.detectChanges();
-      });
+      },
+      error: (err: any) => { 
+        console.error(err);
+        alert(`Rename failed. Status: ${err.status}`);
+      }
+    });
   }
 
-  // --- MODIFIED DELETION LOGIC ---====================
   confirmDelete(folder: any) {
     this.folderToDelete = folder;
   }
 
   performDelete(isCascade: boolean) {
     if (!this.folderToDelete) return;
+
     const id = this.folderToDelete.id;
-    
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    this.http.delete(`http://localhost:3000/folders/${id}?cascade=${isCascade}`, { headers }).subscribe({
+    // FIXED: Changed malformed base URL 'http://folders' to explicit local proxy origin
+    this.http.delete(
+      `http://localhost:3000/folders/${id}?cascade=${isCascade}`,
+      { headers }
+    ).subscribe({
       next: () => {
         this.folderToDelete = null;
         this.fetchFolders();
         this.fetchVaultDocs();
         this.cdr.detectChanges();
-        alert(isCascade ? "Folder and all documents deleted." : "Folder deleted, documents moved to Global.");
+
+        alert(
+          isCascade
+            ? "Folder and all documents deleted."
+            : "Folder deleted, documents moved to Global."
+        );
       },
-      error: (err) => {
+      error: (err: any) => { 
         this.folderToDelete = null;
         console.error("Delete failed:", err);
-        alert("Failed to delete folder: " + (err.error?.message || "Unauthorized"));
+        alert("Failed to delete folder: " + (err.error?.message || `Unauthorized or Status ${err.status}`));
       }
     });
   }
-  
 
   toggleProfileEdit(editState: boolean) {
     this.isEditingProfile = editState;
+
     if (editState) {
-      // Gumawa ng backup bago mag-edit para may babalikan kapag nag-cancel
       this.profileBackupData = { ...this.profileData };
     } else {
-      // Kapag nag-cancel, ibalik ang dating data at linisin ang password placeholder
       this.profileData = { ...this.profileBackupData };
-      this.profileData.password = ''; // Mas mainam na walang laman kesa bullet dots kapag reredi para sa edit uli
+      this.profileData.password = '';
     }
+
     this.cdr.detectChanges();
   }
 
-
-    // ---  3. CORE PROFILE SYNC ENGINE  ---
   updateProfile() {
     if (!this.currentUserId) {
       alert("Error: Critical session expiration. Please re-login.");
+      return;
+    }
+
+    if (this.profileData.password && this.profileData.password.length < 8) {
+      alert("Password must be at least 8 characters long.");
       return;
     }
 
@@ -460,54 +569,75 @@ login() {
     const payload = {
       userId: this.currentUserId,
       username: this.profileData.username,
-      email: this.profileData.email,
+      email: this.profileData.email,  
       bio: this.profileData.bio,
       password: this.profileData.password
     };
 
     console.log("Transmitting profile payload to API:", payload);
 
-    this.http.put<any>('http://localhost:3000/profile/update-profile', payload, { headers }).subscribe({
-      next: (res) => {
+    this.http.put<any>(
+      'http://localhost:3000/users/profile/update-profile',
+      payload,
+      { headers }
+    ).subscribe({
+      next: (res: any) => { 
         if (res.success) {
           alert("Profile and data fields locked into DB successfully!");
-          this.isEditingProfile = false; // Babalik sa View Mode pagkatapos ng successful save
-          this.loginName = this.profileData.username; // I-sync ang welcome message header
+          this.isEditingProfile = false;
+          
+          this.loginName = this.profileData.username;
+          this.profileData.email = payload.email;
+          this.profileData.bio = payload.bio;
+          this.profileData.password = '';
+          this.profileBackupData = { ...this.profileData };
+
           this.refresh();
         } else {
           alert("Database rejection: " + res.message);
         }
       },
-      error: (err) => {
+      error: (err: any) => { 
         console.error("HTTP Pipe Error during profile patch:", err);
-        alert(err.error?.message || "Network communication system failure.");
+        
+        let detailedErrorMessage = `HTTP Error ${err.status}: ${err.statusText || 'Unknown Error'}\n`;
+        if (err.status === 500) {
+          detailedErrorMessage += `Server Database Error: ${err.error?.message || 'Unknown database column layout error. Check server query execution logs.'}`;
+        } else if (err.status === 0) {
+          detailedErrorMessage += "Cannot reach the Backend Server. Check if it is running on port 3000.";
+        } else {
+          detailedErrorMessage += err.error?.message || "Check the browser terminal for precise stack details.";
+        }
+        
+        alert(detailedErrorMessage);
       }
     });
   }
 
-//============================================
-  // LOGOUT and save to logs (logout-history)
-  logout() { 
+  logout() {
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    this.http.post<any>('http://localhost:3000/auth/logout', { activeLogId: this.activeLogId }, { headers }).subscribe({
+    this.http.post<any>(
+      'http://localhost:3000/auth/logout',
+      { activeLogId: this.activeLogId },
+      { headers }
+    ).subscribe({
       next: () => {
-        this.isLoggedIn = false; 
+        this.isLoggedIn = false;
         this.loginName = '';
-        this.loginPass = ''; 
+        this.loginPass = '';
         this.role = '';
         this.currentUserId = null;
         this.activeLogId = null;
         localStorage.removeItem('token');
         this.cdr.detectChanges();
       },
-      error: (err) => {
+      error: (err: any) => { 
         console.error("Failed to record logout stamp gracefully:", err);
-        
-        this.isLoggedIn = false; 
+        this.isLoggedIn = false;
         this.loginName = '';
-        this.loginPass = ''; 
+        this.loginPass = '';
         this.role = '';
         this.currentUserId = null;
         this.activeLogId = null;
