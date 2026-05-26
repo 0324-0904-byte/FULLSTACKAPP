@@ -145,26 +145,38 @@ router.delete('/document/:id', [verifyToken, isAdmin], (req, res) => {
 });
 
 
-//  Secure Asset Download Pipeline 
-router.get('/document/download/:id', verifyToken, (req, res) => {
+// --- 5. SECURE ASSET DOWNLOAD PIPELINE ---
+// Explicitly maps both variations to match her specific frontend plural call safely
+router.get(['/document/download/:id', '/documents/download/:id'], verifyToken, (req, res) => {
     const docId = req.params.id;
     const userId = req.user ? req.user.id : null;
 
     db.query("SELECT name, file_path FROM document WHERE id = ?", [docId], (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
-        if (results.length === 0) return res.status(404).json({ error: "File reference not found" });
+        if (results.length === 0) return res.status(404).json({ error: "File reference not found in DB rows." });
 
         const systemFilename = results[0].file_path;
-        const userDisplayTitle = results[0].name;
+        // If systemFilename turns out to be blank, fall back to results[0].name safely
+        const targetFile = systemFilename || results[0].name;
+        const userDisplayTitle = results[0].name; 
 
-        res.download(path.join(uploadDir, systemFilename), userDisplayTitle, (downloadErr) => {
+        const fullPhysicalPath = path.join(uploadDir, targetFile);
+
+        // Check if the physical binary asset actually exists on your hard drive before attempting to stream it!
+        if (!fs.existsSync(fullPhysicalPath)) {
+            console.error(`🔴 FILE NOT FOUND ON DISK: Database record exists, but file is missing at: ${fullPhysicalPath}`);
+            return res.status(404).json({ 
+                error: "Physical file asset missing from local disk storage space.",
+                note: "The database row matches, but the physical file was deleted from the uploads directory."
+            });
+        }
+
+        // Trigger the file transmission stream safely since it passed the path verification test
+        res.download(fullPhysicalPath, userDisplayTitle, (downloadErr) => {
             if (downloadErr) {
                 console.error("Physical download transmission error:", downloadErr);
-                if (!res.headersSent) {
-                    res.status(404).json({ error: "Physical asset missing from server storage disk room" });
-                }
             } else {
-                // action added to logs
+                // Smooth audit trail addition targeting your unified logs table schema
                 const logSql = "INSERT INTO logs (user_id, action) VALUES (?, ?)";
                 const logAction = `Downloaded document: "${userDisplayTitle}" (ID: ${docId})`;
                 db.query(logSql, [userId, logAction], (logErr) => {

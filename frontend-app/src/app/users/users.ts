@@ -43,18 +43,22 @@ export class UsersComponent implements OnInit {
 
   // --- PROFILE FORM STATE ---
   isEditingProfile = false;
+  selectedAvatarFile: File | null = null;
+  
   profileData = {
     username: '',
     email: '',
     bio: '',
-    password: ''
+    password: '',
+    profile_pic: ''
   };
 
   profileBackupData = {
     username: '',
     email: '',
     bio: '',
-    password: ''
+    password: '',
+    profile_pic: ''
   };
 
   // --- Edit State ---
@@ -91,6 +95,7 @@ export class UsersComponent implements OnInit {
           this.profileData.username = res.user.username || res.user.name || this.loginName;
           this.profileData.email = res.user.email || '';
           this.profileData.bio = res.user.bio || '';
+          this.profileData.profile_pic = res.user.profile_pic || '';
           this.profileData.password = '';
           this.isEditingProfile = false;
 
@@ -124,12 +129,13 @@ export class UsersComponent implements OnInit {
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    this.http.get<any>('http://localhost:3000/users/profile/me', { headers }).subscribe({
+    this.http.get<any>('http://localhost:3000/profile/me', { headers }).subscribe({
       next: (res: any) => { 
         if (res.success && res.user) {
           this.profileData.username = res.user.username || this.loginName;
           this.profileData.email = res.user.email || '';
           this.profileData.bio = res.user.bio || '';
+          this.profileData.profile_pic = res.user.profile_pic || '';
           this.profileData.password = '';
           this.profileBackupData = { ...this.profileData };
           this.cdr.detectChanges();
@@ -552,6 +558,14 @@ export class UsersComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
+  // Event listener to capture the user's selected profile picture
+  onAvatarSelected(event: any) {
+    if (event.target.files && event.target.files[0]) {
+      this.selectedAvatarFile = event.target.files[0];
+      this.cdr.detectChanges();
+    }
+  }
+
   updateProfile() {
     if (!this.currentUserId) {
       alert("Error: Critical session expiration. Please re-login.");
@@ -566,32 +580,45 @@ export class UsersComponent implements OnInit {
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    const payload = {
-      userId: this.currentUserId,
-      username: this.profileData.username,
-      email: this.profileData.email,  
-      bio: this.profileData.bio,
-      password: this.profileData.password
-    };
+    const fb = new FormData();
+    fb.append('userId', this.currentUserId);
+    fb.append('username', this.profileData.username);
+    fb.append('email', this.profileData.email);
+    fb.append('bio', this.profileData.bio);
+    
+    if (this.profileData.password) {
+      fb.append('password', this.profileData.password);
+    }
 
-    console.log("Transmitting profile payload to API:", payload);
+    if (this.selectedAvatarFile) {
+      fb.append('profilePic', this.selectedAvatarFile);
+    }
+
+    console.log("Transmitting multipart profile payload to API...");
 
     this.http.put<any>(
-      'http://localhost:3000/users/profile/update-profile',
-      payload,
+      'http://localhost:3000/profile/update-profile',
+      fb,
       { headers }
     ).subscribe({
       next: (res: any) => { 
         if (res.success) {
           alert("Profile and data fields locked into DB successfully!");
           this.isEditingProfile = false;
+          this.selectedAvatarFile = null; 
+          
+          // Capture the new file string returned from the backend response!
+          if (res.profile_pic) {
+            this.profileData.profile_pic = res.profile_pic;
+          }
           
           this.loginName = this.profileData.username;
-          this.profileData.email = payload.email;
-          this.profileData.bio = payload.bio;
+          this.profileData.email = this.profileData.email;
+          this.profileData.bio = this.profileData.bio;
           this.profileData.password = '';
           this.profileBackupData = { ...this.profileData };
 
+          // Force-sync layout refresh
           this.refresh();
         } else {
           alert("Database rejection: " + res.message);
@@ -599,17 +626,7 @@ export class UsersComponent implements OnInit {
       },
       error: (err: any) => { 
         console.error("HTTP Pipe Error during profile patch:", err);
-        
-        let detailedErrorMessage = `HTTP Error ${err.status}: ${err.statusText || 'Unknown Error'}\n`;
-        if (err.status === 500) {
-          detailedErrorMessage += `Server Database Error: ${err.error?.message || 'Unknown database column layout error. Check server query execution logs.'}`;
-        } else if (err.status === 0) {
-          detailedErrorMessage += "Cannot reach the Backend Server. Check if it is running on port 3000.";
-        } else {
-          detailedErrorMessage += err.error?.message || "Check the browser terminal for precise stack details.";
-        }
-        
-        alert(detailedErrorMessage);
+        alert(`HTTP Error ${err.status}: ${err.error?.message || 'Check backend query execution logs.'}`);
       }
     });
   }

@@ -17,7 +17,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // --- 2. STATIC FILE SERVING ---
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', (req, res, next) => {
+    // Manually force CORS policy alignment for asset delivery requests
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:4200');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    next();
+}, express.static(path.join(__dirname, '../uploads')));
 
 // --- 3. DEDICATED ROUTE IMPORTS ---
 const authRoutes = require('./routes/auth');
