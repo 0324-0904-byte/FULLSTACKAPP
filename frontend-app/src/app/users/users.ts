@@ -2,6 +2,7 @@ import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http'; 
+import Swal from 'sweetalert2'; 
 
 @Component({
   selector: 'app-users',
@@ -114,12 +115,36 @@ export class UsersComponent implements OnInit {
           this.refresh();
 
         } else {
-          alert(res.message);
+          Swal.fire({
+            title: 'Login Failed',
+            text: res.message,
+            icon: 'warning',
+            confirmButtonColor: '#1e3a8a',
+            heightAuto: false
+          });
         }
       },
       error: (err: any) => { 
         console.error("Login endpoint failed:", err);
-        alert(`Login Connection Error (${err.status}): ${err.message || 'Cannot connect to backend server.'}`);
+        
+        if (err.error && err.error.message) {
+          Swal.fire({
+            title: 'Login Denied',
+            text: err.error.message, 
+            icon: 'warning',
+            confirmButtonColor: '#1e3a8a',
+            heightAuto: false
+          });
+        } else {
+          // Fallback for real network drops or server crashes
+          Swal.fire({
+            title: 'Connection Error',
+            text: 'Could not connect to the server. Please check your network.',
+            icon: 'error',
+            confirmButtonColor: '#ef4444',
+            heightAuto: false
+          });
+        }
       }
     });
   }
@@ -141,7 +166,18 @@ export class UsersComponent implements OnInit {
           this.cdr.detectChanges();
         }
       },
-      error: (err: any) => console.error("Fetch current profile status failed:", err) 
+      error: (err: any) => {
+        console.error("Fetch current profile status failed:", err);
+        Swal.fire({
+          title: 'Error',
+          text: 'Could not load your latest profile details.',
+          icon: 'error',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000
+        });
+      }
     });
 
     if (this.role === 'admin') {
@@ -178,12 +214,25 @@ export class UsersComponent implements OnInit {
 
   addUser() {
     if (!this.newUserPass || this.newUserPass.length < 8) {
-      alert("Password must be at least 8 characters long.");
+      Swal.fire({
+        title: 'Short Password',
+        text: 'The password must be at least 8 characters long.',
+        icon: 'warning',
+        confirmButtonColor: '#1e3a8a',
+        heightAuto: false
+      });
       return;
     }
 
     if (!this.newUserName || !this.newUserPass) {
-      return alert("Fill Name and Password");
+      Swal.fire({
+        title: 'Missing Fields',
+        text: 'Please fill in both the username and password fields.',
+        icon: 'warning',
+        confirmButtonColor: '#1e3a8a',
+        heightAuto: false
+      });
+      return;
     }
 
     const payload = {
@@ -194,16 +243,34 @@ export class UsersComponent implements OnInit {
     
     this.http.post<any>('http://localhost:3000/auth/register', payload).subscribe({
       next: (res: any) => { 
-        alert("Successfully created account");
+        Swal.fire({
+          title: 'User Created',
+          text: `Successfully created a new account for ${this.newUserName}.`,
+          icon: 'success',
+          confirmButtonColor: '#10b981',
+          heightAuto: false
+        });
         this.newUserName = '';
         this.newUserPass = '';
         this.refresh();
       },
       error: (err: any) => { 
         if (err.status === 400) {
-          alert("User is already registered");
+          Swal.fire({
+            title: 'Name Taken',
+            text: 'This username is already being used.',
+            icon: 'error',
+            confirmButtonColor: '#ef4444',
+            heightAuto: false
+          });
         } else {
-          alert("Server Error: Could not create account. Status: " + err.status);
+          Swal.fire({
+            title: 'Error',
+            text: 'Could not create the account. Please try again.',
+            icon: 'error',
+            confirmButtonColor: '#64748b',
+            heightAuto: false
+          });
         }
         this.refresh();
       }
@@ -222,7 +289,13 @@ export class UsersComponent implements OnInit {
 
   saveUpdate() {
     if (!this.editingUser || !this.editingUser.id) {
-      alert("Error: Critical User ID missing for update.");
+      Swal.fire({
+        title: 'Error',
+        text: 'Cannot save changes. Missing user ID parameter.',
+        icon: 'error',
+        confirmButtonColor: '#ef4444',
+        heightAuto: false
+      });
       return;
     }
 
@@ -244,13 +317,31 @@ export class UsersComponent implements OnInit {
         if (res.success) {
           this.editingUser = null;
           this.refresh();
-          alert("Update Success!");
+          Swal.fire({
+            title: 'Changes Saved',
+            text: 'User profile updated successfully.',
+            icon: 'success',
+            confirmButtonColor: '#10b981',
+            heightAuto: false
+          });
         } else {
-          alert("Update failed: " + res.message);
+          Swal.fire({
+            title: 'Update Failed',
+            text: res.message,
+            icon: 'warning',
+            confirmButtonColor: '#1e3a8a',
+            heightAuto: false
+          });
         }
       },
       error: (err: any) => { 
-        alert("Communication Error: " + (err.error?.message || `Could not save. Status: ${err.status}`));
+        Swal.fire({
+          title: 'Error Saving',
+          text: err.error?.message || 'Could not save updates to the server.',
+          icon: 'error',
+          confirmButtonColor: '#64748b',
+          heightAuto: false
+        });
       }
     });
   }
@@ -270,7 +361,13 @@ export class UsersComponent implements OnInit {
         this.refresh();
       },
       error: (err: any) => { 
-        alert(`Could not change user status. Status: ${err.status}`);
+        Swal.fire({
+          title: 'Status Error',
+          text: 'Could not change the user status configuration.',
+          icon: 'error',
+          confirmButtonColor: '#ef4444',
+          heightAuto: false
+        });
       }
     });
   }
@@ -302,7 +399,13 @@ export class UsersComponent implements OnInit {
 
   uploadDocument() {
     if (!this.uploadTitle.trim()) {
-      alert("Please provide an explicit display name for your resource.");
+      Swal.fire({
+        title: 'Name Required',
+        text: 'Please enter a display title for your file before uploading.',
+        icon: 'warning',
+        confirmButtonColor: '#1e3a8a',
+        heightAuto: false
+      });
       return;
     }
 
@@ -328,11 +431,23 @@ export class UsersComponent implements OnInit {
         this.selectedFile = null;
         this.fetchVaultDocs();
         this.cdr.detectChanges();
-        alert("Document uploaded successfully!");
+        Swal.fire({
+          title: 'Document Uploaded',
+          text: 'Your file has been saved successfully.',
+          icon: 'success',
+          confirmButtonColor: '#10b981',
+          heightAuto: false
+        });
       },
       error: (err: any) => { 
         console.error(err);
-        alert(`Upload failed. Server responded with status: ${err.status}`);
+        Swal.fire({
+          title: 'Upload Failed',
+          text: 'The server could not process your file upload.',
+          icon: 'error',
+          confirmButtonColor: '#ef4444',
+          heightAuto: false
+        });
       }
     });
   }
@@ -352,7 +467,7 @@ export class UsersComponent implements OnInit {
 
     const targetFolder = (this.editingDoc.folder_id === 'null' || this.editingDoc.folder_id === '') ? null : this.editingDoc.folder_id;
     const token = localStorage.getItem('token');
-    const headers = { 'Authorization': `Bearer ${token}` }; // FIXED: Added Auth Header
+    const headers = { 'Authorization': `Bearer ${token}` };
 
     this.http.put(
       `http://localhost:3000/document/${this.editingDoc.id}`,
@@ -367,40 +482,76 @@ export class UsersComponent implements OnInit {
         this.editingDoc = null;
         this.refresh();
         this.cdr.detectChanges();
-        alert("Document updated successfully!");
+        Swal.fire({
+          title: 'Document Updated',
+          text: 'File details were changed successfully.',
+          icon: 'success',
+          confirmButtonColor: '#10b981',
+          heightAuto: false
+        });
       },
       error: (err: any) => { 
         console.error(err);
-        alert(`Failed to update document. Status: ${err.status}`);
+        Swal.fire({
+          title: 'Update Error',
+          text: 'Could not change the document properties.',
+          icon: 'error',
+          confirmButtonColor: '#ef4444',
+          heightAuto: false
+        });
       }
     });
   }
 
   removeDocument(id: number) {
-    if (confirm("Permanently delete this file from system server storage?")) {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` }; // FIXED: Added Auth Header
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'Do you want to permanently delete this file from the system storage?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, delete it',
+      cancelButtonText: 'Cancel',
+      heightAuto: false
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const token = localStorage.getItem('token');
+        const headers = { 'Authorization': `Bearer ${token}` };
 
-      this.http.delete(
-        `http://localhost:3000/document/${id}?uploaded_by=${this.currentUserId}`,
-        { headers }
-      ).subscribe({
-        next: () => {
-          alert("Document deleted successfully!");
-          this.fetchVaultDocs();
-          this.cdr.detectChanges();
-        },
-        error: (err: any) => { 
-          console.error(err);
-          alert(`Failed to delete document. Status: ${err.status}`);
-        }
-      });
-    }
+        this.http.delete(
+          `http://localhost:3000/document/${id}?uploaded_by=${this.currentUserId}`,
+          { headers }
+        ).subscribe({
+          next: () => {
+            Swal.fire({
+              title: 'Deleted',
+              text: 'The document was removed completely.',
+              icon: 'success',
+              confirmButtonColor: '#10b981',
+              heightAuto: false
+            });
+            this.fetchVaultDocs();
+            this.cdr.detectChanges();
+          },
+          error: (err: any) => { 
+            console.error(err);
+            Swal.fire({
+              title: 'Delete Failed',
+              text: 'The server rejected the deletion query request.',
+              icon: 'error',
+              confirmButtonColor: '#ef4444',
+              heightAuto: false
+            });
+          }
+        });
+      }
+    });
   }
 
   downloadFile(id: number, filename: string) {
     const token = localStorage.getItem('token');
-    const headers = { 'Authorization': `Bearer ${token}` }; // FIXED: Added Auth Header
+    const headers = { 'Authorization': `Bearer ${token}` };
 
     this.http.get(
       `http://localhost:3000/document/download/${id}`,
@@ -420,7 +571,13 @@ export class UsersComponent implements OnInit {
       },
       error: (err: any) => { 
         console.error(err);
-        alert(`Download failed. Status: ${err.status}`);
+        Swal.fire({
+          title: 'Download Error',
+          text: 'Could not fetch the file package from the server folder.',
+          icon: 'error',
+          confirmButtonColor: '#ef4444',
+          heightAuto: false
+        });
       }
     });
   }
@@ -439,14 +596,26 @@ export class UsersComponent implements OnInit {
       },
       error: (err: any) => { 
         console.error("Failed to fetch folders:", err);
-        alert("Error fetching folders: " + (err.error?.error || `Unauthorized or Status ${err.status}`));
+        Swal.fire({
+          title: 'Error',
+          text: "Could not load the system folders layout list.",
+          icon: 'error',
+          confirmButtonColor: '#64748b',
+          heightAuto: false
+        });
       }
     });
   }
 
   createFolder() {
     if (!this.newFolderName || !this.newFolderName.trim()) {
-      alert("Please enter a folder name.");
+      Swal.fire({
+        title: 'Name Required',
+        text: 'Please enter a name for your new folder directory.',
+        icon: 'warning',
+        confirmButtonColor: '#1e3a8a',
+        heightAuto: false
+      });
       return;
     }
 
@@ -463,11 +632,23 @@ export class UsersComponent implements OnInit {
         this.newFolderName = '';
         this.fetchFolders();
         this.cdr.detectChanges();
-        alert("Folder created successfully!");
+        Swal.fire({
+          title: 'Folder Created',
+          text: 'New directory has been added successfully.',
+          icon: 'success',
+          confirmButtonColor: '#10b981',
+          heightAuto: false
+        });
       },
       error: (err: any) => { 
         console.error(err);
-        alert("Failed to create folder: " + (err.error?.message || err.error?.error || `Status: ${err.status}`));
+        Swal.fire({
+          title: 'Creation Failed',
+          text: "Could not build the new folder record path.",
+          icon: 'error',
+          confirmButtonColor: '#ef4444',
+          heightAuto: false
+        });
       }
     });
   }
@@ -497,14 +678,26 @@ export class UsersComponent implements OnInit {
       { headers }
     ).subscribe({
       next: () => {
-        alert("Folder renamed successfully!");
+        Swal.fire({
+          title: 'Folder Renamed',
+          text: 'Changes saved to the directory tree setup.',
+          icon: 'success',
+          confirmButtonColor: '#10b981',
+          heightAuto: false
+        });
         this.editingFolder = null;
         this.fetchFolders();
         this.cdr.detectChanges();
       },
       error: (err: any) => { 
         console.error(err);
-        alert(`Rename failed. Status: ${err.status}`);
+        Swal.fire({
+          title: 'Rename Failed',
+          text: 'The server rejected the folder name update.',
+          icon: 'error',
+          confirmButtonColor: '#ef4444',
+          heightAuto: false
+        });
       }
     });
   }
@@ -520,7 +713,6 @@ export class UsersComponent implements OnInit {
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    // FIXED: Changed malformed base URL 'http://folders' to explicit local proxy origin
     this.http.delete(
       `http://localhost:3000/folders/${id}?cascade=${isCascade}`,
       { headers }
@@ -531,16 +723,24 @@ export class UsersComponent implements OnInit {
         this.fetchVaultDocs();
         this.cdr.detectChanges();
 
-        alert(
-          isCascade
-            ? "Folder and all documents deleted."
-            : "Folder deleted, documents moved to Global."
-        );
+        Swal.fire({
+          title: 'Folder Deleted',
+          text: isCascade ? "The folder and all its documents were deleted." : "The folder was deleted. Its documents were safely moved to Global.",
+          icon: 'success',
+          confirmButtonColor: '#10b981',
+          heightAuto: false
+        });
       },
       error: (err: any) => { 
         this.folderToDelete = null;
         console.error("Delete failed:", err);
-        alert("Failed to delete folder: " + (err.error?.message || `Unauthorized or Status ${err.status}`));
+        Swal.fire({
+          title: 'Delete Failed',
+          text: "Could not safely drop the folder database object index.",
+          icon: 'error',
+          confirmButtonColor: '#ef4444',
+          heightAuto: false
+        });
       }
     });
   }
@@ -558,22 +758,45 @@ export class UsersComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  // Event listener to capture the user's selected profile picture
   onAvatarSelected(event: any) {
-    if (event.target.files && event.target.files[0]) {
-      this.selectedAvatarFile = event.target.files[0];
-      this.cdr.detectChanges();
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      Swal.fire({
+        title: 'Wrong File Type',
+        text: 'Please select a valid image file structure (PNG, JPG, JPEG).',
+        icon: 'warning',
+        confirmButtonColor: '#1e3a8a',
+        heightAuto: false
+      });
+      return;
     }
+
+    this.selectedAvatarFile = file;
+    this.cdr.detectChanges();
   }
 
   updateProfile() {
     if (!this.currentUserId) {
-      alert("Error: Critical session expiration. Please re-login.");
+      Swal.fire({
+        title: 'Session Error',
+        text: 'Your login session expired. Please log in again.',
+        icon: 'error',
+        confirmButtonColor: '#ef4444',
+        heightAuto: false
+      });
       return;
     }
 
     if (this.profileData.password && this.profileData.password.length < 8) {
-      alert("Password must be at least 8 characters long.");
+      Swal.fire({
+        title: 'Short Password',
+        text: 'The password override must be at least 8 characters long.',
+        icon: 'warning',
+        confirmButtonColor: '#1e3a8a',
+        heightAuto: false
+      });
       return;
     }
 
@@ -603,11 +826,16 @@ export class UsersComponent implements OnInit {
     ).subscribe({
       next: (res: any) => { 
         if (res.success) {
-          alert("Profile and data fields locked into DB successfully!");
+          Swal.fire({
+            title: 'Profile Saved',
+            text: 'Your account settings have been updated successfully.',
+            icon: 'success',
+            confirmButtonColor: '#10b981',
+            heightAuto: false
+          });
           this.isEditingProfile = false;
           this.selectedAvatarFile = null; 
           
-          // Capture the new file string returned from the backend response!
           if (res.profile_pic) {
             this.profileData.profile_pic = res.profile_pic;
           }
@@ -618,15 +846,26 @@ export class UsersComponent implements OnInit {
           this.profileData.password = '';
           this.profileBackupData = { ...this.profileData };
 
-          // Force-sync layout refresh
           this.refresh();
         } else {
-          alert("Database rejection: " + res.message);
+          Swal.fire({
+            title: 'Update Refused',
+            text: res.message,
+            icon: 'warning',
+            confirmButtonColor: '#1e3a8a',
+            heightAuto: false
+          });
         }
       },
       error: (err: any) => { 
         console.error("HTTP Pipe Error during profile patch:", err);
-        alert(`HTTP Error ${err.status}: ${err.error?.message || 'Check backend query execution logs.'}`);
+        Swal.fire({
+          title: 'System Error 500',
+          text: 'Internal Server Error: Check backend query execution logs.',
+          icon: 'error',
+          confirmButtonColor: '#64748b',
+          heightAuto: false
+        });
       }
     });
   }
@@ -641,26 +880,33 @@ export class UsersComponent implements OnInit {
       { headers }
     ).subscribe({
       next: () => {
-        this.isLoggedIn = false;
-        this.loginName = '';
-        this.loginPass = '';
-        this.role = '';
-        this.currentUserId = null;
-        this.activeLogId = null;
-        localStorage.removeItem('token');
-        this.cdr.detectChanges();
+        this.executeFrontendSessionWipe();
       },
       error: (err: any) => { 
         console.error("Failed to record logout stamp gracefully:", err);
-        this.isLoggedIn = false;
-        this.loginName = '';
-        this.loginPass = '';
-        this.role = '';
-        this.currentUserId = null;
-        this.activeLogId = null;
-        localStorage.removeItem('token');
-        this.cdr.detectChanges();
+        this.executeFrontendSessionWipe();
       }
+    });
+  }
+
+  private executeFrontendSessionWipe() {
+    this.isLoggedIn = false;
+    this.loginName = '';
+    this.loginPass = '';
+    this.role = '';
+    this.currentUserId = null;
+    this.activeLogId = null;
+    localStorage.removeItem('token');
+    this.cdr.detectChanges();
+    
+    Swal.fire({
+      title: 'Signed Out',
+      text: 'You have logged out of your account successfully.',
+      icon: 'info',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2500
     });
   }
 }
