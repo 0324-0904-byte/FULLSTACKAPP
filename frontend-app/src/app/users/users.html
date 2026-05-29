@@ -1,4 +1,4 @@
-<<div style="min-height: 100vh; background: #f1f5f9; padding: 40px; font-family: 'Segoe UI', sans-serif;">
+<div style="min-height: 100vh; background: #f1f5f9; padding: 40px; font-family: 'Segoe UI', sans-serif;">
 
   @if (!isLoggedIn) {
     <div style="max-width: 450px; margin: 80px auto; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; border: 1px solid #e2e8f0;">
@@ -224,8 +224,17 @@
             <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
               <button (click)="selectedFolderId = ''; fetchVaultDocs()" [style.background]="selectedFolderId === '' ? '#1e3a8a' : '#e2e8f0'" [style.color]="selectedFolderId === '' ? 'white' : '#1e3a8a'" style="padding: 10px 20px; border-radius: 20px; border: none; cursor: pointer; font-weight: bold;">All Records</button>
               @for(f of folder; track f.id) {
-                <div style="display: flex; align-items: center; background: #e2e8f0; border-radius: 20px; padding-right: 8px; gap: 4px; position: relative;">
-                  <button (click)="selectedFolderId = f.id; fetchVaultDocs()" [style.background]="selectedFolderId === f.id ? '#1e3a8a' : 'transparent'" [style.color]="selectedFolderId === f.id ? 'white' : '#1e3a8a'" style="padding: 10px 15px; border-radius: 20px; border: none; cursor: pointer; font-weight: bold;">📁 {{ f.folder_name }}</button>
+                <div [style.background]="role === 'admin' ? '#e2e8f0' : 'transparent'"
+                     [style.padding-right]="role === 'admin' ? '8px' : '0'"
+                     style="display: flex; align-items: center; border-radius: 20px; gap: 4px; position: relative;">
+                  
+                  <button (click)="selectedFolderId = f.id; fetchVaultDocs()" 
+                          [style.background]="selectedFolderId === f.id ? '#1e3a8a' : (role === 'admin' ? 'transparent' : '#e2e8f0')" 
+                          [style.color]="selectedFolderId === f.id ? 'white' : '#1e3a8a'" 
+                          style="padding: 10px 15px; border-radius: 20px; border: none; cursor: pointer; font-weight: bold;">
+                          📁 {{ f.folder_name }}
+                  </button>
+                  
                   @if (role === 'admin') {
                     <button (click)="startFolderRename(f)" style="background: none; border: none; color: #3b82f6; cursor: pointer; padding: 0 2px;" title="Rename Folder">✏️</button>
                     <button (click)="confirmDelete(f)" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 0 2px;" title="Delete Folder">❌</button>
