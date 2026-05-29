@@ -1,4 +1,4 @@
-<div style="min-height: 100vh; background: #f1f5f9; padding: 40px; font-family: 'Segoe UI', sans-serif;">
+<<div style="min-height: 100vh; background: #f1f5f9; padding: 40px; font-family: 'Segoe UI', sans-serif;">
 
   @if (!isLoggedIn) {
     <div style="max-width: 450px; margin: 80px auto; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center; border: 1px solid #e2e8f0;">
@@ -35,10 +35,9 @@
       </div>
 
       <div style="padding: 30px 40px;">
-@if (activeTab === 'profile' && role !== 'admin') {
+        @if (activeTab === 'profile' && role !== 'admin') {
           <div style="max-width: 650px; margin: 0 auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); position: relative;">
             
-            <!-- VIEW MODE (Kapag hindi ine-edit) -->
             @if (!isEditingProfile) {
               <div>
                 <button (click)="toggleProfileEdit(true)" style="position: absolute; top: 25px; right: 30px; background: #1e3a8a; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 13px;" title="Edit Profile">
@@ -87,7 +86,6 @@
               </div>
             }
 
-            <!-- EDIT MODE -->
             @if (isEditingProfile) {
               <form (ngSubmit)="updateProfile()">
                 <h3 style="color: #1e3a8a; margin-top: 0; margin-bottom: 5px; font-size: 20px;">📝 EDIT PROFILE SETTINGS</h3>
@@ -297,6 +295,13 @@
                   </td>
                   <td style="padding: 15px 25px; color: #475569; font-size: 13px; font-weight: 500;">{{ d.folder_name ? '📁 ' + d.folder_name : '🌐 Global / Public' }}</td>
                   <td style="padding: 15px 25px; text-align: right;">
+                    
+                    <a [href]="'http://localhost:3000/documents/' + d.id + '/preview'" 
+                       target="_blank" 
+                       style="display: inline-block; background: #10b981; color: white; text-decoration: none; padding: 7px 15px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 5px; cursor: pointer;">
+                       Preview
+                    </a>
+
                     <button (click)="downloadFile(d.id, d.title)" style="background: #1e3a8a; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 5px;">Download</button>
                     @if (role === 'admin') {
                       <button (click)="startDocEdit(d)" style="background: #3b82f6; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 5px;">EDIT</button>

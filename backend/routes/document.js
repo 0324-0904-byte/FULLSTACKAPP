@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { exec } = require('child_process');
 const mysql = require('mysql2');
 const config = require('../config/db.config');
 const verifyToken = require('../middleware/auth');
@@ -184,6 +185,64 @@ router.get(['/document/download/:id', '/documents/download/:id'], verifyToken, (
                 });
             }
         });
+    });
+});
+
+// --- 6. ASSET INLINE PREVIEW PIPELINE ---
+router.get(['/document/:id/preview', '/documents/:id/preview'], (req, res) => {
+    const docId = req.params.id;
+
+    db.query("SELECT name, file_path FROM document WHERE id = ?", [docId], (err, results) => {
+        if (err) return res.status(500).send("Database error encountered during retrieval.");
+        if (results.length === 0) return res.status(404).send("Document reference matching that identifier was not found.");
+
+        const systemFilename = results[0].file_path;
+        const targetFile = systemFilename || results[0].name;
+        const fullPhysicalPath = path.join(uploadDir, targetFile);
+
+        // Check if file physically exists on server disk space
+        if (!fs.existsSync(fullPhysicalPath)) {
+            return res.status(404).send("The file record exists in our system rows, but the physical document asset is missing from storage.");
+        }
+
+        const ext = path.extname(fullPhysicalPath).toLowerCase();
+
+        // --- DYNAMIC FORMAT INTERCEPTION ---
+        if (ext === '.docx' || ext === '.xlsx') {
+            const outputDir = path.join(__dirname, '../../uploads/temp');
+            if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+
+            // CRITICAL: We 'return' here so Express stops moving down!
+            return exec(`libreoffice --headless --convert-to pdf --outdir "${outputDir}" "${fullPhysicalPath}"`, (execErr) => {
+                if (execErr) {
+                    console.error("LibreOffice Error:", execErr);
+                    return res.status(500).send("Document conversion failed.");
+                }
+                
+                const pdfPath = path.join(outputDir, targetFile.replace(ext, '.pdf'));
+                res.writeHead(200, { 
+                    'Content-Type': 'application/pdf', 
+                    'Content-Disposition': 'inline' 
+                });
+                fs.createReadStream(pdfPath).pipe(res);
+            });
+        }
+
+        // --- STANDARD FORMAT RENDER ---
+        let contentType = 'application/octet-stream';
+        if (ext === '.pdf') contentType = 'application/pdf';
+        else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
+        else if (ext === '.png') contentType = 'image/png';
+        else if (ext === '.txt') contentType = 'text/plain';
+
+        // This was running twice for docx files! Now it's safely blocked by the return above.
+        res.writeHead(200, {
+            'Content-Type': contentType,
+            'Content-Disposition': 'inline'
+        });
+
+        const fileStream = fs.createReadStream(fullPhysicalPath);
+        fileStream.pipe(res);
     });
 });
 
