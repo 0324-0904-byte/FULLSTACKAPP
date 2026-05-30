@@ -751,7 +751,6 @@ export class UsersComponent implements OnInit {
     if (editState) {
       this.profileBackupData = { ...this.profileData };
     } else {
-      this.profileData = { ...this.profileBackupData };
       this.profileData.password = '';
     }
 
@@ -789,6 +788,24 @@ export class UsersComponent implements OnInit {
       return;
     }
 
+    const emailInput = this.profileData.email ? this.profileData.email.trim() : '';
+    
+    if (emailInput !== '') {
+
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      
+      if (!emailRegex.test(emailInput)) {
+        Swal.fire({
+          title: 'Invalid Email Format',
+          text: 'Please enter a valid email address (e.g., sample@domain.com).',
+          icon: 'error',
+          confirmButtonColor: '#ef4444',
+          heightAuto: false
+        });
+        return; 
+      }
+    }
+
     if (this.profileData.password && this.profileData.password.length < 8) {
       Swal.fire({
         title: 'Short Password',
@@ -805,14 +822,16 @@ export class UsersComponent implements OnInit {
 
     const fb = new FormData();
     fb.append('userId', this.currentUserId);
-    fb.append('username', this.profileData.username);
-    fb.append('email', this.profileData.email);
-    fb.append('bio', this.profileData.bio);
     
+    
+    if (this.profileData.username) fb.append('username', this.profileData.username);
+    if (this.profileData.email) fb.append('email', this.profileData.email);
+    if (this.profileData.bio !== undefined && this.profileData.bio !== null) {
+      fb.append('bio', this.profileData.bio);
+    }
     if (this.profileData.password) {
       fb.append('password', this.profileData.password);
     }
-
     if (this.selectedAvatarFile) {
       fb.append('profilePic', this.selectedAvatarFile);
     }
@@ -833,6 +852,7 @@ export class UsersComponent implements OnInit {
             confirmButtonColor: '#10b981',
             heightAuto: false
           });
+          
           this.isEditingProfile = false;
           this.selectedAvatarFile = null; 
           
@@ -840,10 +860,8 @@ export class UsersComponent implements OnInit {
             this.profileData.profile_pic = res.profile_pic;
           }
           
-          this.loginName = this.profileData.username;
-          this.profileData.email = this.profileData.email;
-          this.profileData.bio = this.profileData.bio;
           this.profileData.password = '';
+          
           this.profileBackupData = { ...this.profileData };
 
           this.refresh();
@@ -865,6 +883,68 @@ export class UsersComponent implements OnInit {
           icon: 'error',
           confirmButtonColor: '#64748b',
           heightAuto: false
+        });
+      }
+    });
+  }
+
+  removeProfilePhoto() {
+    if (!this.currentUserId) {
+      Swal.fire({
+        title: 'Session Error',
+        text: 'Your identity could not be verified. Please log in again.',
+        icon: 'error',
+        confirmButtonColor: '#ef4444',
+        heightAuto: false
+      });
+      return;
+    }
+
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'Do you want to remove your profile photo and revert to the default avatar?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, remove it',
+      cancelButtonText: 'Cancel',
+      heightAuto: false
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const token = localStorage.getItem('token');
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        this.http.put<any>('http://localhost:3000/profile/remove-photo', 
+          { userId: this.currentUserId }, 
+          { headers }
+        ).subscribe({
+          next: (res: any) => {
+            if (res.success) {
+              Swal.fire({
+                title: 'Removed!',
+                text: 'Your profile photo has been removed successfully.',
+                icon: 'success',
+                confirmButtonColor: '#10b981',
+                heightAuto: false
+              });
+
+              this.profileData.profile_pic = '';
+              this.selectedAvatarFile = null;
+              this.profileBackupData.profile_pic = '';
+              this.refresh();
+            }
+          },
+          error: (err: any) => {
+            console.error('Photo removal pipe failed:', err);
+            Swal.fire({
+              title: 'Error',
+              text: err.error?.message || 'Could not process photo removal from the server directory.',
+              icon: 'error',
+              confirmButtonColor: '#ef4444',
+              heightAuto: false
+            });
+          }
         });
       }
     });
