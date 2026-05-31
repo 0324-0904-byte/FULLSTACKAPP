@@ -67,6 +67,7 @@ export class UsersComponent implements OnInit {
 
   // --- Real Stats Feature ---
   dbLatency: number = 0;
+  totalDocumentsCount: number = 0;
 
   uploadTitle = '';
   uploadCategory = 'General';
@@ -210,6 +211,7 @@ export class UsersComponent implements OnInit {
     });
 
     this.fetchVaultDocs();
+    this.fetchGlobalDocumentCount();
   }
 
   addUser() {
@@ -393,6 +395,25 @@ export class UsersComponent implements OnInit {
     });
   }
 
+  fetchGlobalDocumentCount() {
+  const token = localStorage.getItem('token');
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  // We hit the base endpoint with no query filters so it matches the whole table
+  this.http.get<any[]>('http://localhost:3000/document', { headers }).subscribe({
+    next: (d: any[]) => {
+      this.totalDocumentsCount = d.length;
+      this.cdr.detectChanges();
+    },
+    error: (err: any) => {
+      console.error("Global document count fetch failed:", err);
+    }
+  });
+}
+
   onFileSelected(event: any) {
     this.selectedFile = event.target.files[0];
   }
@@ -430,7 +451,8 @@ export class UsersComponent implements OnInit {
         this.uploadTitle = '';
         this.selectedFile = null;
         this.fetchVaultDocs();
-        this.cdr.detectChanges();
+        this.fetchGlobalDocumentCount();
+  
         Swal.fire({
           title: 'Document Uploaded',
           text: 'Your file has been saved successfully.',
@@ -469,7 +491,7 @@ export class UsersComponent implements OnInit {
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
-    this.http.put(
+  this.fetchGlobalDocumentCount();  this.http.put(
       `http://localhost:3000/document/${this.editingDoc.id}`,
       {
         title: this.editingDoc.title,
@@ -532,6 +554,7 @@ export class UsersComponent implements OnInit {
               heightAuto: false
             });
             this.fetchVaultDocs();
+            this.fetchGlobalDocumentCount();
             this.cdr.detectChanges();
           },
           error: (err: any) => { 
@@ -721,6 +744,7 @@ export class UsersComponent implements OnInit {
         this.folderToDelete = null;
         this.fetchFolders();
         this.fetchVaultDocs();
+        this.fetchGlobalDocumentCount();
         this.cdr.detectChanges();
 
         Swal.fire({
