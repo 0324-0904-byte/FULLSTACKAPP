@@ -79,6 +79,8 @@ export class UsersComponent implements OnInit {
   // --- Deletion Choice UI State ---
   folderToDelete: any = null;
 
+  isMobileMenuOpen: boolean = false;
+
   ngOnInit() {
     const token = sessionStorage.getItem('token');
     
@@ -125,6 +127,7 @@ export class UsersComponent implements OnInit {
   changeTab(tabName: string) {
     this.activeTab = tabName;
     sessionStorage.setItem('lastTab', tabName);
+    this.isMobileMenuOpen = false;
     this.refresh();
   }
 

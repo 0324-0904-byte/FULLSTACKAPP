@@ -1,41 +1,96 @@
 <style>
-  /* --- DEFAULT DESKTOP STYLES --- */
-  .doc-actions {
-    display: flex !important;
-    gap: 8px !important;
-    justify-content: flex-end !important;
-    align-items: center !important;
-  }
+  .doc-actions { display: flex !important; gap: 8px !important; justify-content: flex-end !important; align-items: center !important; }
+  .menu-toggle-btn { display: none !important; }
+
+  .mobile-header-row { display: none !important; }
 
   @media (max-width: 768px) {
-    .dashboard-wrap { max-width: 100% !important; border-radius: 0 !important; }
-    .content-area   { padding: clamp(15px, 4vw, 25px) !important; }
+    .dashboard-wrap { max-width: 100% !important; border-radius: 12px !important; overflow: hidden !important; isolation: isolate !important; }
+    .content-area   { padding: 20px 15px !important; }
     
-    .nav-bar        { flex-direction: column !important; align-items: stretch !important; padding: 5px 0 !important; }
-    .nav-tabs       { flex-wrap: wrap !important; width: 100% !important; }
-    .nav-tab        { flex: 1 1 auto !important; text-align: center !important; padding: 12px 10px !important; font-size: 13px !important; }
-    .nav-user       { padding: 12px 15px !important; border-top: 1px solid rgba(255,255,255,0.15) !important; justify-content: space-between !important; width: 100% !important; box-sizing: border-box !important; }
+    .banner-container { height: auto !important; max-height: 120px !important; }
+    .banner-img { object-fit: cover !important; object-position: center !important; }
+
+    .mobile-header-row { display: flex !important; }
+
+    .menu-toggle-btn { 
+      display: block !important; 
+      width: 100% !important;
+      background: #1e40af !important;
+      color: white !important; 
+      border: 1px solid rgba(255, 255, 255, 0.1) !important; 
+      padding: 14px 20px !important; 
+      font-size: 14px !important; 
+      cursor: pointer !important; 
+      font-weight: bold !important; 
+      border-radius: 6px !important;
+      text-align: left !important;
+      box-sizing: border-box !important;
+      transition: background 0.2s ease !important;
+    }
+
+    .menu-toggle-btn:active {
+      background: #1d4ed8 !important; 
+    }
+
+    .nav-bar { 
+      flex-direction: column !important; 
+      align-items: stretch !important; 
+      padding: 12px 15px !important; 
+      position: relative !important;
+      background: #1e3a8a !important;
+    }
+
+    .nav-tabs { 
+      display: none !important; 
+      flex-direction: column !important; 
+      width: 100% !important; 
+      background: #152e72 !important;
+      margin-top: 8px !important;
+      border-radius: 8px !important;
+      overflow: hidden !important;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    .nav-tabs.menu-open { 
+      display: flex !important; 
+    }
     
+    .nav-tab { 
+      width: 100% !important; 
+      text-align: left !important; 
+      padding: 14px 20px !important; 
+      font-size: 13px !important; 
+      border-radius: 0 !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+    
+    .nav-user { 
+      display: flex !important;
+      flex-direction: row !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      padding: 12px 5px 4px !important; 
+      width: 100% !important; 
+      box-sizing: border-box !important;
+    }
+
     .stats-grid     { grid-template-columns: 1fr !important; gap: 15px !important; }
+    .content-area h3 { font-size: 15px !important; margin-bottom: 12px !important; }
+    .stats-grid > div { padding: 15px 20px !important; }
+    .stats-grid p     { font-size: 24px !important; margin-top: 2px !important; }
     .input-row      { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
-    .input-row input,
-    .input-row select,
-    .input-row button { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
-    
+    .input-row input, .input-row select, .input-row button { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
     .profile-header { flex-direction: column !important; align-items: center !important; text-align: center !important; gap: 20px !important; }
     .profile-info   { text-align: left !important; width: 100% !important; }
     .edit-profile-grid { grid-template-columns: 1fr !important; gap: 25px !important; }
     .edit-profile-grid > div:first-child { display: flex !important; flex-direction: column !important; align-items: center !important; }
     .profile-edit-btn { position: static !important; width: 100% !important; margin-top: 15px !important; justify-content: center !important; }
-
     .login-wrap     { margin: 40px auto !important; width: 92% !important; }
     .login-header   { margin: 0 !important; border-radius: 12px 12px 0 0 !important; }
     .login-card     { padding: 25px 20px !important; }
-    
     .table-wrap     { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; border: 1px solid #e2e8f0 !important; border-radius: 8px !important; }
     .data-table     { min-width: 650px !important; }
-    
-    .doc-actions    { display: flex !important; flex-wrap: wrap !important; gap: 6px !important; justify-content: flex-end !important; }
   }
 </style>
 
@@ -54,33 +109,40 @@
       </div>
     </div>
   } @else {
-    <div class="dashboard-wrap" style="max-width: 1150px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #e2e8f0; box-sizing: border-box;">
+    <div class="dashboard-wrap" style="max-width: 1150px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #e2e8f0;">
 
-      <div style="width: 100%; height: clamp(100px, 15vw, 180px); background: #0f172a; display: flex; align-items: center; justify-content: center;">
-        <img src="design.png" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />
+      <div class="banner-container" style="width: 100%; height: 100%; background: #0f172a; display: flex; align-items: center; justify-content: center;">
+        <img class="banner-img" src="design.png" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.9;" />
       </div>
 
       <div class="nav-bar" style="display: flex; background: #1e3a8a; padding: 0 20px; justify-content: space-between; align-items: center;">
-        <div class="nav-tabs" style="display: flex;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;" class="mobile-header-row">
+          <button class="menu-toggle-btn" (click)="isMobileMenuOpen = !isMobileMenuOpen">
+            {{ isMobileMenuOpen ? '✕ Close Menu' : '☰ Open Menu' }}
+          </button>
+        </div>
+
+        <div class="nav-tabs" [class.menu-open]="isMobileMenuOpen" style="display: flex;">
           @if (role === 'admin') {
-            <button class="nav-tab" (click)="changeTab('dashboard')" [style.background]="activeTab === 'dashboard' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 20px; cursor: pointer; font-weight: bold;">DASHBOARD</button>
+            <button class="nav-tab" (click)="changeTab('dashboard')" [style.background]="activeTab === 'dashboard' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">DASHBOARD</button>
           }
-          <button class="nav-tab" (click)="changeTab('vault')" [style.background]="activeTab === 'vault' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 20px; cursor: pointer; font-weight: bold;">DOCUMENTS</button>
+          <button class="nav-tab" (click)="changeTab('vault')" [style.background]="activeTab === 'vault' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">DOCUMENTS</button>
           @if (role !== 'admin') {
-            <button class="nav-tab" (click)="changeTab('profile')" [style.background]="activeTab === 'profile' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 20px; cursor: pointer; font-weight: bold;">PROFILE</button>
+            <button class="nav-tab" (click)="changeTab('profile')" [style.background]="activeTab === 'profile' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">PROFILE</button>
           }
           @if (role === 'admin') {
-            <button class="nav-tab" (click)="changeTab('users')" [style.background]="activeTab === 'users' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 20px; cursor: pointer; font-weight: bold;">USERS</button>
-            <button class="nav-tab" (click)="changeTab('logs')" [style.background]="activeTab === 'logs' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 20px; cursor: pointer; font-weight: bold;">AUDIT TRAIL</button>
+            <button class="nav-tab" (click)="changeTab('users')" [style.background]="activeTab === 'users' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">USERS</button>
+            <button class="nav-tab" (click)="changeTab('logs')" [style.background]="activeTab === 'logs' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">AUDIT TRAIL</button>
           }
         </div>
-        <div class="nav-user" style="color: white; font-size: 12px; display: flex; align-items: center; gap: 8px; padding: 10px 0;">
+
+        <div class="nav-user" style="color: white; font-size: 12px; display: flex; align-items: center; gap: 8px;">
           <span>Welcome, {{ loginName }}</span>
           <button (click)="logout()" style="background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight: bold;">Logout</button>
         </div>
       </div>
-
-      <div class="content-area" style="padding: 30px 40px; box-sizing: border-box;">
+      <div class="content-area" style="padding: 30px 40px;">
 
         @if (activeTab === 'profile' && role !== 'admin') {
           <div style="max-width: 650px; margin: 0 auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: clamp(15px, 4vw, 30px); box-shadow: 0 4px 6px rgba(0,0,0,0.02); position: relative; box-sizing: border-box;">
