@@ -92,22 +92,24 @@ export class UsersComponent implements OnInit {
             this.role = res.user.role;
             this.currentUserId = res.user.id;
             this.loginName = res.user.username || res.user.name;
+
+            const savedLogId = sessionStorage.getItem('activeLogId');
+            if (savedLogId) {
+              this.activeLogId = savedLogId;
+            }
             
-            // 1. Read what's currently in storage
             const savedTab = sessionStorage.getItem('lastTab');
-            console.log("Found saved tab on refresh:", savedTab); // Debug check
+            console.log("Found saved tab on refresh:", savedTab); 
             
-            // 2. Assign the state strictly inside this callback
             if (savedTab) {
               this.activeTab = savedTab;
             } else {
               this.activeTab = (this.role === 'admin') ? 'dashboard' : 'vault';
               sessionStorage.setItem('lastTab', this.activeTab);
             }
-            
-            // 3. Refresh data vectors
+
             this.refresh();
-            this.cdr.detectChanges(); // Force Angular view update
+            this.cdr.detectChanges();
           } else {
             this.executeFrontendSessionWipe();
           }
@@ -137,6 +139,7 @@ export class UsersComponent implements OnInit {
           this.role = res.user.role;
           this.currentUserId = res.user.id;
           this.activeLogId = res.activeLogId;
+          sessionStorage.setItem('activeLogId', res.activeLogId);
           this.activeTab = 'documents';
 
           this.profileData.username = res.user.username || res.user.name || this.loginName;
@@ -1047,8 +1050,11 @@ export class UsersComponent implements OnInit {
     this.role = '';
     this.currentUserId = null;
     this.activeLogId = null;
+
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('lastTab');
+    sessionStorage.removeItem('activeLogId');
+
     this.cdr.detectChanges();
     
     Swal.fire({
