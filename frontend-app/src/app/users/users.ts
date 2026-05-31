@@ -102,7 +102,7 @@ export class UsersComponent implements OnInit {
           this.isEditingProfile = false;
 
           if (res.token) {
-            localStorage.setItem('token', res.token);
+            sessionStorage.setItem('token', res.token);
           }
 
           console.log("hi", res);
@@ -152,7 +152,7 @@ export class UsersComponent implements OnInit {
 
   refresh() {
     const startTime = Date.now();
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
     this.http.get<any>('http://localhost:3000/profile/me', { headers }).subscribe({
@@ -301,7 +301,7 @@ export class UsersComponent implements OnInit {
       return;
     }
 
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
     const updatePayload = {
@@ -349,7 +349,7 @@ export class UsersComponent implements OnInit {
   }
 
   toggleStatus(userId: number, currentStatus: 'active' | 'deactivated') {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
     
     const nextStatus = currentStatus === 'active' ? 'deactivated' : 'active';
@@ -377,7 +377,7 @@ export class UsersComponent implements OnInit {
   fetchVaultDocs() {
     const filter = this.selectedFolderId ? `&folderId=${this.selectedFolderId}` : '';
     const url = `http://localhost:3000/document?search=${this.searchText}${filter}`;
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     
     const headers: Record<string, string> = {};
     if (token) {
@@ -396,7 +396,7 @@ export class UsersComponent implements OnInit {
   }
 
   fetchGlobalDocumentCount() {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
   const headers: Record<string, string> = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -430,7 +430,7 @@ export class UsersComponent implements OnInit {
       return;
     }
 
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
     const fb = new FormData();
 
@@ -488,7 +488,7 @@ export class UsersComponent implements OnInit {
     if (!this.editingDoc) return;
 
     const targetFolder = (this.editingDoc.folder_id === 'null' || this.editingDoc.folder_id === '') ? null : this.editingDoc.folder_id;
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
   this.fetchGlobalDocumentCount();  this.http.put(
@@ -538,7 +538,7 @@ export class UsersComponent implements OnInit {
       heightAuto: false
     }).then((result) => {
       if (result.isConfirmed) {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const headers = { 'Authorization': `Bearer ${token}` };
 
         this.http.delete(
@@ -573,7 +573,7 @@ export class UsersComponent implements OnInit {
   }
 
   downloadFile(id: number, filename: string) {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
     this.http.get(
@@ -606,7 +606,7 @@ export class UsersComponent implements OnInit {
   }
 
   fetchFolders() {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
     this.http.get<any[]>(
@@ -642,7 +642,7 @@ export class UsersComponent implements OnInit {
       return;
     }
 
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
     const payload = { folder_name: this.newFolderName.trim() };
 
@@ -689,7 +689,7 @@ export class UsersComponent implements OnInit {
   saveFolderRename() {
     if (!this.editingFolder || !this.editingFolder.folder_name.trim()) return;
 
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
     this.http.put(
@@ -733,7 +733,7 @@ export class UsersComponent implements OnInit {
     if (!this.folderToDelete) return;
 
     const id = this.folderToDelete.id;
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
     this.http.delete(
@@ -841,7 +841,7 @@ export class UsersComponent implements OnInit {
       return;
     }
 
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
     const fb = new FormData();
@@ -936,7 +936,7 @@ export class UsersComponent implements OnInit {
       heightAuto: false
     }).then((result) => {
       if (result.isConfirmed) {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const headers = { 'Authorization': `Bearer ${token}` };
 
         this.http.put<any>('http://localhost:3000/profile/remove-photo', 
@@ -975,7 +975,7 @@ export class UsersComponent implements OnInit {
   }
 
   logout() {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
     this.http.post<any>(
@@ -1000,7 +1000,7 @@ export class UsersComponent implements OnInit {
     this.role = '';
     this.currentUserId = null;
     this.activeLogId = null;
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
     this.cdr.detectChanges();
     
     Swal.fire({
