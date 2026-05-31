@@ -97,7 +97,7 @@ export class UsersComponent implements OnInit {
 
             const savedLogId = sessionStorage.getItem('activeLogId');
             if (savedLogId) {
-              this.activeLogId = savedLogId;
+              this.activeLogId = Number(savedLogId);
             }
             
             const savedTab = sessionStorage.getItem('lastTab');
@@ -141,8 +141,10 @@ export class UsersComponent implements OnInit {
           this.isLoggedIn = true;
           this.role = res.user.role;
           this.currentUserId = res.user.id;
+
           this.activeLogId = res.activeLogId;
-          sessionStorage.setItem('activeLogId', res.activeLogId);
+          sessionStorage.setItem('activeLogId', String(res.activeLogId));
+
           this.activeTab = 'documents';
 
           this.profileData.username = res.user.username || res.user.name || this.loginName;

@@ -82,16 +82,19 @@ router.post("/login", (req, res) => {
         });
     });
 });
-
+ 
 // POST: Logout 
 router.post("/logout", verifyToken, (req, res) => {
     const { activeLogId } = req.body;
 
-    if (!activeLogId) {
-        return res.status(400).json({ success: false, message: "Missing active session tracking ID parameter." });
+    if (!activeLogId || activeLogId === "null" || activeLogId === "undefined") {
+        console.warn("Logout requested but missing a valid session tracking ID payload.");
+        return res.json({ 
+            success: true, 
+            message: "Client cleared immediately without database timestamp update." 
+        });
     }
 
-    // Set logout timestamp for the current record
     const logSql = "UPDATE logs SET logout_timestamp = NOW() WHERE id = ?";
     db.query(logSql, [activeLogId], (err) => {
         if (err) {
