@@ -44,8 +44,8 @@ router.get('/me', verifyToken, (req, res) => {
 
         const hasBloColumn = columns.some(col => col.Field === 'blo');
         const bioColumnName = hasBloColumn ? 'blo' : 'bio';
-
-        db.query(`SELECT username, email, ${bioColumnName} AS bio, profile_pic FROM user WHERE id = ?`, [userId], (err, results) => {
+        
+        db.query(`SELECT id, username, email, role, ${bioColumnName} AS bio, profile_pic FROM user WHERE id = ?`, [userId], (err, results) => {
             if (err) return res.status(500).json({ success: false, message: err.message });
             if (results.length === 0) return res.status(404).json({ success: false, message: "User not found." });
 

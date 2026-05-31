@@ -20,15 +20,15 @@
       <div style="display: flex; background: #1e3a8a; padding: 0 20px; justify-content: space-between; align-items: center;">
         <div style="display: flex;">
           @if (role === 'admin') {
-            <button (click)="activeTab = 'dashboard'; refresh()" [style.background]="activeTab === 'dashboard' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">DASHBOARD</button>
+            <button (click)="changeTab('dashboard')" [style.background]="activeTab === 'dashboard' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">DASHBOARD</button>
           }
-          <button (click)="activeTab = 'vault'; refresh()" [style.background]="activeTab === 'vault' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">DOCUMENTS</button>
+          <button (click)="changeTab('vault')" [style.background]="activeTab === 'vault' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">DOCUMENTS</button>
           @if (role !== 'admin') {
-            <button (click)="activeTab = 'profile'; refresh()" [style.background]="activeTab === 'profile' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">PROFILE</button>
+            <button (click)="changeTab('profile')" [style.background]="activeTab === 'profile' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">PROFILE</button>
           }
           @if (role === 'admin') {
-            <button (click)="activeTab = 'users'; refresh()" [style.background]="activeTab === 'users' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">USERS</button>
-            <button (click)="activeTab = 'logs'; refresh()" [style.background]="activeTab === 'logs' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">AUDIT TRAIL</button>
+            <button (click)="changeTab('users')" [style.background]="activeTab === 'users' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">USERS</button>
+            <button (click)="changeTab('logs')" [style.background]="activeTab === 'logs' ? '#3b82f6' : 'transparent'" style="color: white; border: none; padding: 15px 25px; cursor: pointer; font-weight: bold;">AUDIT TRAIL</button>
           }
         </div>
         <div style="color: white; font-size: 12px;">Welcome, {{ loginName }} | <button (click)="logout()" style="background:#ef4444; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Logout</button></div>

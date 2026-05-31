@@ -79,7 +79,52 @@ export class UsersComponent implements OnInit {
   // --- Deletion Choice UI State ---
   folderToDelete: any = null;
 
-  ngOnInit() {}
+  ngOnInit() {
+    const token = sessionStorage.getItem('token');
+    
+    if (token) {
+      this.isLoggedIn = true;
+      
+      const headers = { 'Authorization': `Bearer ${token}` };
+      this.http.get<any>('http://localhost:3000/profile/me', { headers }).subscribe({
+        next: (res: any) => {
+          if (res.success && res.user) {
+            this.role = res.user.role;
+            this.currentUserId = res.user.id;
+            this.loginName = res.user.username || res.user.name;
+            
+            // 1. Read what's currently in storage
+            const savedTab = sessionStorage.getItem('lastTab');
+            console.log("Found saved tab on refresh:", savedTab); // Debug check
+            
+            // 2. Assign the state strictly inside this callback
+            if (savedTab) {
+              this.activeTab = savedTab;
+            } else {
+              this.activeTab = (this.role === 'admin') ? 'dashboard' : 'vault';
+              sessionStorage.setItem('lastTab', this.activeTab);
+            }
+            
+            // 3. Refresh data vectors
+            this.refresh();
+            this.cdr.detectChanges(); // Force Angular view update
+          } else {
+            this.executeFrontendSessionWipe();
+          }
+        },
+        error: (err: any) => {
+          console.error("Auto-login session restoration failed:", err);
+          this.executeFrontendSessionWipe();
+        }
+      });
+    }
+  }
+
+  changeTab(tabName: string) {
+    this.activeTab = tabName;
+    sessionStorage.setItem('lastTab', tabName);
+    this.refresh();
+  }
 
   login() {
     this.http.post<any>('http://localhost:3000/auth/login', {
@@ -109,8 +154,10 @@ export class UsersComponent implements OnInit {
 
           if (this.role === 'admin') {
             this.activeTab = 'dashboard';
+            sessionStorage.setItem('lastTab', 'dashboard');
           } else {
             this.activeTab = 'vault';
+            sessionStorage.setItem('lastTab', 'vault');
           }
 
           this.refresh();
@@ -1001,6 +1048,7 @@ export class UsersComponent implements OnInit {
     this.currentUserId = null;
     this.activeLogId = null;
     sessionStorage.removeItem('token');
+    sessionStorage.removeItem('lastTab');
     this.cdr.detectChanges();
     
     Swal.fire({
