@@ -1032,16 +1032,17 @@ export class UsersComponent implements OnInit {
   logout() {
     const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
+    const activeLogId = this.activeLogId ?? sessionStorage.getItem('activeLogId');
 
     this.http.post<any>(
       'http://localhost:3000/auth/logout',
-      { activeLogId: this.activeLogId },
+      { activeLogId },
       { headers }
     ).subscribe({
       next: () => {
         this.executeFrontendSessionWipe();
       },
-      error: (err: any) => { 
+      error: (err: any) => {
         console.error("Failed to record logout stamp gracefully:", err);
         this.executeFrontendSessionWipe();
       }

@@ -29,6 +29,15 @@ router.post("/register", (req, res) => {
         db.query(sql, [name, role, hashedPassword], (err) => {
             if (err) return res.status(500).json({ success: false, message: err.message });
             res.status(201).json({ success: true, message: "User Registered Successfully" });
+
+            // action saved to db
+            const newUserId = result.insertId;
+            const logSql = "INSERT INTO logs (user_id, action) VALUES (?, ?)";
+            const logAction = `New user account created: "${name}" with role "${role}"`;
+            db.query(logSql, [newUserId, logAction], (logErr) => {
+                if (logErr) console.error("Logging Error (Register):", logErr.message);
+                res.status(201).json({ success: true, message: "User Registered Successfully" });
+            });
         });
     });
 });
@@ -43,6 +52,10 @@ router.post("/login", (req, res) => {
         }
 
         const user = result[0];
+
+        if (user.status === 'deactivated') {
+            return res.status(403).json({ success: false, message: "Your account has been deactivated. Please contact an administrator." });
+        }
 
         // Compare incoming plain-text password with the secure hash in the database
         const isValidPassword = bcrypt.compareSync(password, user.password);

@@ -13,20 +13,36 @@ const db = mysql.createConnection({
 
 // Fetch System Operational Audits (Protected) 
 router.get('/logs', verifyToken, (req, res) => {
-    // MODIFIED: Changed l.timestamp to your new column name: l.action_timestamp
     const sql = `
         SELECT 
-            l.id, 
-            l.user_id, 
-            u.username AS user_name, 
-            CASE 
-                WHEN l.action IS NOT NULL AND l.action != '' THEN l.action
-                WHEN l.logout_timestamp IS NULL THEN 'User Login Successful (Active)'
-                ELSE 'User Session Terminated / Logout'
-            END AS action, 
-            COALESCE(l.action_timestamp, l.login_timestamp) AS action_time
+            l.id, l.user_id, u.username AS user_name,
+            'User Login Successful (Active)' AS action,
+            l.login_timestamp AS action_time
         FROM logs l
         LEFT JOIN user u ON l.user_id = u.id
+        WHERE l.login_timestamp IS NOT NULL
+        AND l.action IS NULL              
+        AND l.logout_timestamp IS NULL    
+        
+        UNION ALL
+
+        SELECT 
+            l.id, l.user_id, u.username AS user_name,
+            'User Session Terminated / Logout' AS action,
+            l.logout_timestamp AS action_time
+        FROM logs l
+        LEFT JOIN user u ON l.user_id = u.id
+        WHERE l.logout_timestamp IS NOT NULL
+
+        UNION ALL
+        
+        SELECT 
+            l.id, l.user_id, u.username AS user_name,
+            l.action AS action,
+            l.action_timestamp AS action_time
+        FROM logs l
+        LEFT JOIN user u ON l.user_id = u.id
+        WHERE l.action IS NOT NULL AND l.action != ''
         ORDER BY action_time DESC`;
                  
     db.query(sql, (err, results) => {
@@ -34,6 +50,8 @@ router.get('/logs', verifyToken, (req, res) => {
             console.error("Database Fetch Error (Logs):", err);
             return res.status(500).json({ error: err.message });
         }
+        // console.log('Total rows:', results.length);
+        // console.log('Logout rows:', results.filter(r => r.action.includes('Logout')));
         res.json(results);
     });
 });
