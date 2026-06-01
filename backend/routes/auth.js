@@ -26,17 +26,19 @@ router.post("/register", (req, res) => {
         const hashedPassword = bcrypt.hashSync(password, 10);
         const sql = "INSERT INTO user (username, role, password, status) VALUES (?, ?, ?, 'active')";
         
-        db.query(sql, [name, role, hashedPassword], (err) => {
+        db.query(sql, [name, role, hashedPassword], (err, results) => {
             if (err) return res.status(500).json({ success: false, message: err.message });
-            res.status(201).json({ success: true, message: "User Registered Successfully" });
-
-            // action saved to db
-            const newUserId = result.insertId;
+            
+            const newUserId = results.insertId;
             const logSql = "INSERT INTO logs (user_id, action) VALUES (?, ?)";
             const logAction = `New user account created: "${name}" with role "${role}"`;
+            
             db.query(logSql, [newUserId, logAction], (logErr) => {
-                if (logErr) console.error("Logging Error (Register):", logErr.message);
-                res.status(201).json({ success: true, message: "User Registered Successfully" });
+                if (logErr) {
+                    console.error("Logging Error (Register):", logErr.message);
+                }
+                
+                return res.status(201).json({ success: true, message: "User Registered Successfully" });
             });
         });
     });
